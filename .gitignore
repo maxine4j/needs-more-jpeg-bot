@@ -67,3 +67,6 @@ target/
 # Secret Stuff
 oauth.py
 
+# Temp files
+temp
+

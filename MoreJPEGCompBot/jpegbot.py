@@ -21,34 +21,70 @@ import praw
 import time
 import sqlite3
 import threading
-from oauth import app_ua, app_id, app_secret, app_uri, app_scopes, app_code, app_refresh
+import os
+import pyimgur
+import optparse
+from PIL import Image
+from oauth import reddit_app_ua, reddit_app_id, reddit_app_secret, reddit_app_uri, reddit_app_refresh
+from oauth import imgur_app_id, imgur_app_secret
 
-
-subreddit = 'Arwic'  # this can be a multireddit, i.e. sub1+sub2+sub3
+subreddits = 'Arwic'  # this can be a multireddit, i.e. sub1+sub2+sub3
 white_listed_authors = []
 black_listed_authors = []
-triggers = ['needs more jpeg compression']
+triggers = [
+    'needs more jpeg compression',
+    'needs more jpg compression',
+    'nice jpeg',
+    'nice jpg',
+    'needs more jpeg',
+    'needs more jpg']
 max_pull = 100
-pull_period = 20
-code = 'W5Cz_AqAJiD2kAr5yV0c77Bg91k'
+pull_period = 30
+compression_quality = 5
+direct_imgur_link = 'http://i.imgur.com/'
+indirect_imgur_link = 'http://imgur.com/'
+imgur_url = 'imgur.com'
+db_file = 'jpegbot.db'
+temp_dir = 'temp'
+reply_template = \
+'''
+[Here you go](%s)
 
+---
+
+^This ^message ^was ^created ^by ^a ^bot [^[Contact ^author]](http://np.reddit.com/message/compose/?to=Arwic&amp;subject=MoreJPEGCompBot)[^[Source ^code]](https://github.com/Arwic/RedditBots)
+'''
 debug_truncation_len = 20
+reddit = None
+imgur = None
+sql = None
+cur = None
 
 
-def login():
-    r = praw.Reddit(app_ua)
-    r.set_oauth_app_info(app_id, app_secret, app_uri)
-    r.refresh_access_information(app_refresh)
-    return r
+def auth_reddit():
+    print('Attempting to authenticate with reddit...')
+    global reddit
+    reddit = praw.Reddit(reddit_app_ua)
+    reddit.set_oauth_app_info(reddit_app_id, reddit_app_secret, reddit_app_uri)
+    reddit.refresh_access_information(reddit_app_refresh)
+    print('Success')
 
 
-def load_db():
-    sql = sqlite3.connect('jpegbot.db')
-    print('Loaded SQL Database')
+def auth_imgur():
+    print('Attempting to authenticate with imgur...')
+    global imgur
+    imgur = pyimgur.Imgur(imgur_app_id, imgur_app_secret)
+    print('Success!')
+
+
+def auth_db():
+    print('Attempting to connect to database...')
+    global sql, cur
+    sql = sqlite3.connect(db_file)
     cur = sql.cursor()
     cur.execute('CREATE TABLE IF NOT EXISTS processed(ID TEXT)')
-    print('Loaded Completed table')
     sql.commit()
+    print('Success!')
     return sql, cur
 
 
@@ -61,54 +97,98 @@ def has_replied(sql, cur, cid):
     return False
 
 
-def _reply(comment):
-    print('Replying to', comment.id, 'by', comment.author.name)
+def imgur_url_to_id(url):
+    if direct_imgur_link in url:
+        return url[19:-4]
+    elif indirect_imgur_link in url:
+        return url[17:]
+    else:
+        print('Imgur to ID: Bad URL: %s' % url)
+        return None
+
+
+def download_image(imgur_id):
+    print('Downloading image', imgur_id)
+    global imgur
+    image_handle = imgur.get_image(imgur_id)
+    path = image_handle.download(path=temp_dir, overwrite=True)
+    print('Success!', path)
+    return path
+
+
+def upload_image(path):
+    print('Uploading image', path)
+    global imgur
+    uploaded_image = imgur.upload_image(path, title="NEEDS MORE JPEG COMPRESSION")
+    print('Success!', uploaded_image.link)
+    return uploaded_image
+
+
+def compress_image(img_path):
+    print('Compressing image', img_path)
+    compressed_path = os.path.splitext(img_path)[0] + '_c.jpg'
+    if os.path.isfile(compressed_path):
+        os.remove(compressed_path)
+    image = Image.open(img_path)
+    image.save(compressed_path, 'JPEG', quality=compression_quality)
+    print('Success!', compressed_path)
+    return compressed_path
+
+
+def reply(submission, comment):
+    print('Reply: Replying to comment id="%s" author="%s", body="%s"' % (comment.id, comment.author,
+                                                                         comment.body[:debug_truncation_len]))
     while True:
+        imgur_id = imgur_url_to_id(submission.url)
+        if imgur_id is None:
+            break
+        image_path = download_image(imgur_id)
+        compressed_image_path = compress_image(image_path)
+        uploaded_image = upload_image(compressed_image_path)
         try:
-            comment.reply('This is a test response')
+            comment.reply(reply_template % uploaded_image.link)
+            print('Reply: Reply was submitted successfully')
             break
         except praw.errors.RateLimitExceeded as error:
             print('Rate limit exceeded! Sleeping for', error.sleep_time, 'seconds')
             time.sleep(error.sleep_time)
 
 
-def reply(comment):
-    t = threading.Thread(target=_reply, args=[comment])
-    t.start()
-
-
-def scan(reddit, sql, cur):
-    print('Scanning', subreddit, '...')
-    sr = reddit.get_subreddit(subreddit)
+def scan():
+    print('Scanning subreddits: %s', subreddits)
+    sr = reddit.get_subreddit(subreddits)
     submissions = sr.get_new(limit=max_pull)
     for submission in submissions:
-        print('Parsing submission', submission.id, submission.name, 'by', submission.author)
-        for c in submission.comments:
+        print('Parsing submission id="%s" name="%s" author="%s"' % (submission.id, submission.name, submission.author))
+        # check if it is an imgur submission
+        if imgur_url not in submission.url:
+            print('Submission not supported', submission.url)
+            continue
+        for comment in submission.comments:
             # check if the author still exists
             try:
-                c_author = c.author.name.lower()
-                print('Parsing comment id="' + c.id + '" body="' + c.body[:debug_truncation_len] +
-                      '..." author="' + c_author + '"')
+                c_author = comment.author.name.lower()
+                print('Scan: Parsing comment id="%s" author="%s", body="%s"' %
+                      (comment.id, comment.author, comment.body[:debug_truncation_len]))
             except AttributeError:
-                print('Comment id="' + c.id + '" has been deleted or removed, ignoring it')
+                print('Scan: Comment id="%s" has been deleted or removed, ignoring it' % comment.id)
                 continue
 
             # check if we have already replied to this comment
-            if has_replied(sql, cur, c.id):
-                print('Comment id="' + c.id + '" has been parsed, ignoring it')
+            if has_replied(sql, cur, comment.id):
+                print('Scan: Comment id="%s" has already been parsed, ignoring it' % comment.id)
                 continue
 
             # check if the comment author is white listed
             if white_listed_authors != []:
                 white_listed = False
                 for author in white_listed_authors:
-                    if author.lower() == c_author.lower():
+                    if author.lower() == c_author:
                         white_listed = True
                         break
                 if not white_listed:
-                    print('User:', c_author, 'is not white listed, ignoring comment')
+                    print('Scan: author="%s" is not white listed, ignoring comment' % c_author)
                     continue
-
             # check if the comment author is black listed
             if black_listed_authors != []:
                 black_listed = False
@@ -117,25 +197,48 @@ def scan(reddit, sql, cur):
                         black_listed = True
                         break
                 if black_listed:
-                    print('User:', c_author, 'is black listed, ignoring comment')
+                    print('Scan: author="%s" is black listed, ignoring comment' % c_author)
                     continue
-
-            c_body = c.body.lower()
+            c_body = comment.body.lower()
             if any(trigger in c_body.lower() for trigger in triggers):
-                reply(c)
+                reply(submission, comment)
+
+
+def prepare_env():
+    if not os.path.isdir(temp_dir):
+        os.mkdir(temp_dir)
 
 
 def main():
-    reddit = login()
-    sql, cur = load_db()
+    parser = optparse.OptionParser()
+    parser.add_option('-q', '--quality', dest='quality',
+                      help='sets the quality of compression',
+                      default='5',
+                      nargs=1)
+
+    options, arguments = parser.parse_args()
+
+    try:
+        global compression_quality
+        compression_quality = int(options.quality)
+    except TypeError:
+        print('Invalid compression quality')
+        exit(1)
+
+    auth_reddit()
+    auth_imgur()
+    auth_db()
     while True:
         try:
-            scan(reddit, sql, cur)
+            scan()
+        except KeyboardInterrupt:
+            break
         except Exception:
             traceback.print_exc()
         print('Running again in', pull_period, 'seconds')
         sql.commit()
         time.sleep(pull_period)
+
 
 if __name__ == '__main__':
     main()
