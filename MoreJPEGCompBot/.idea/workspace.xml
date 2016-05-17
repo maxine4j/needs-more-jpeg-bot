@@ -35,8 +35,8 @@
       <file leaf-file-name="jpegbot.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/jpegbot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.63316584">
-              <caret line="72" column="54" selection-start-line="72" selection-start-column="54" selection-end-line="72" selection-end-column="54" />
+            <state vertical-scroll-proportion="0.7236181">
+              <caret line="99" column="60" selection-start-line="99" selection-start-column="60" selection-end-line="99" selection-end-column="60" />
               <folding>
                 <element signature="e#688#704#0" expanded="true" />
                 <marker date="1463515310363" expanded="true" signature="2698:2743" placeholder="CREATE TABLE... processed" />
@@ -90,6 +90,22 @@
     <option name="width" value="1590" />
     <option name="height" value="1055" />
   </component>
+  <component name="ProjectInspectionProfilesVisibleTreeState">
+    <entry key="Project Default">
+      <profile-state>
+        <expanded-state>
+          <State>
+            <id />
+          </State>
+        </expanded-state>
+        <selected-state>
+          <State>
+            <id>Buildout</id>
+          </State>
+        </selected-state>
+      </profile-state>
+    </entry>
+  </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
     <OptionsSetting value="true" id="Remove" />
@@ -142,6 +158,8 @@
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="Errors" />
+    <property name="settings.editor.splitter.proportion" value="0.2" />
   </component>
   <component name="RunManager" selected="Python.jpegbot">
     <configuration default="false" name="jpegbot" type="PythonConfigurationType" factoryName="Python" temporary="true">
@@ -515,8 +533,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/jpegbot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.63316584">
-          <caret line="72" column="54" selection-start-line="72" selection-start-column="54" selection-end-line="72" selection-end-column="54" />
+        <state vertical-scroll-proportion="0.7236181">
+          <caret line="99" column="60" selection-start-line="99" selection-start-column="60" selection-end-line="99" selection-end-column="60" />
           <folding>
             <element signature="e#688#704#0" expanded="true" />
             <marker date="1463515310363" expanded="true" signature="2698:2743" placeholder="CREATE TABLE... processed" />
