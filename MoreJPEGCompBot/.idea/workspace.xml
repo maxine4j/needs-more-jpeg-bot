@@ -14,7 +14,7 @@
   </component>
   <component name="ChangesViewManager" flattened_view="true" show_ignored="false" />
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/reddit_jpeg_compression_bot$jpegbot.coverage" NAME="jpegbot Coverage Results" MODIFIED="1463498111056" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/reddit_jpeg_compression_bot$jpegbot.coverage" NAME="jpegbot Coverage Results" MODIFIED="1463515847232" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="CreatePatchCommitExecutor">
     <option name="PATCH_PATH" value="" />
@@ -35,13 +35,13 @@
       <file leaf-file-name="jpegbot.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/jpegbot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.09045226">
-              <caret line="147" column="12" selection-start-line="147" selection-start-column="12" selection-end-line="147" selection-end-column="12" />
+            <state vertical-scroll-proportion="0.63316584">
+              <caret line="72" column="54" selection-start-line="72" selection-start-column="54" selection-end-line="72" selection-end-column="54" />
               <folding>
-                <element signature="e#682#698#0" expanded="true" />
-                <marker date="1463498763034" expanded="true" signature="2402:2447" placeholder="CREATE TABLE... processed" />
-                <marker date="1463498763034" expanded="true" signature="2560:2594" placeholder="SELECT * FRO... processed" />
-                <marker date="1463498763034" expanded="true" signature="2664:2695" placeholder="INSERT INTO processed... " />
+                <element signature="e#688#704#0" expanded="true" />
+                <marker date="1463515310363" expanded="true" signature="2698:2743" placeholder="CREATE TABLE... processed" />
+                <marker date="1463515310363" expanded="true" signature="2866:2900" placeholder="SELECT * FRO... processed" />
+                <marker date="1463515310363" expanded="true" signature="2970:3001" placeholder="INSERT INTO processed... " />
               </folding>
             </state>
           </provider>
@@ -51,7 +51,7 @@
         <entry file="file://$PROJECT_DIR$/oauth.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="11" column="14" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="14" />
+              <caret line="4" column="29" selection-start-line="4" selection-start-column="29" selection-end-line="4" selection-end-column="29" />
               <folding />
             </state>
           </provider>
@@ -434,10 +434,10 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#682#698#0" expanded="true" />
-            <marker date="1463498763034" expanded="true" signature="2402:2447" placeholder="CREATE TABLE... processed" />
-            <marker date="1463498763034" expanded="true" signature="2560:2594" placeholder="SELECT * FRO... processed" />
-            <marker date="1463498763034" expanded="true" signature="2664:2695" placeholder="INSERT INTO processed... " />
+            <element signature="e#688#704#0" expanded="true" />
+            <marker date="1463515310363" expanded="true" signature="2698:2743" placeholder="CREATE TABLE... processed" />
+            <marker date="1463515310363" expanded="true" signature="2866:2900" placeholder="SELECT * FRO... processed" />
+            <marker date="1463515310363" expanded="true" signature="2970:3001" placeholder="INSERT INTO processed... " />
           </folding>
         </state>
       </provider>
@@ -455,10 +455,10 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="3" column="19" selection-start-line="3" selection-start-column="5" selection-end-line="3" selection-end-column="19" />
           <folding>
-            <element signature="e#682#698#0" expanded="true" />
-            <marker date="1463498763034" expanded="true" signature="2402:2447" placeholder="CREATE TABLE... processed" />
-            <marker date="1463498763034" expanded="true" signature="2560:2594" placeholder="SELECT * FRO... processed" />
-            <marker date="1463498763034" expanded="true" signature="2664:2695" placeholder="INSERT INTO processed... " />
+            <element signature="e#688#704#0" expanded="true" />
+            <marker date="1463515310363" expanded="true" signature="2698:2743" placeholder="CREATE TABLE... processed" />
+            <marker date="1463515310363" expanded="true" signature="2866:2900" placeholder="SELECT * FRO... processed" />
+            <marker date="1463515310363" expanded="true" signature="2970:3001" placeholder="INSERT INTO processed... " />
           </folding>
         </state>
       </provider>
@@ -479,14 +479,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/oauth.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="11" column="14" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="14" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/local/lib/python3.4/dist-packages/pyimgur/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -497,23 +489,39 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/oauth.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="4" column="29" selection-start-line="4" selection-start-column="29" selection-end-line="4" selection-end-column="29" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/lib/python3.4/dist-packages/requests/adapters.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.45393634">
+          <caret line="456" column="49" selection-start-line="456" selection-start-column="24" selection-end-line="456" selection-end-column="49" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file:///usr/lib/python3/dist-packages/PIL/Image.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.8760469">
-          <caret line="1435" column="0" selection-start-line="1435" selection-start-column="0" selection-end-line="1435" selection-end-column="0" />
+        <state vertical-scroll-proportion="1.4187604">
+          <caret line="1119" column="0" selection-start-line="1119" selection-start-column="0" selection-end-line="1119" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/jpegbot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.09045226">
-          <caret line="147" column="12" selection-start-line="147" selection-start-column="12" selection-end-line="147" selection-end-column="12" />
+        <state vertical-scroll-proportion="0.63316584">
+          <caret line="72" column="54" selection-start-line="72" selection-start-column="54" selection-end-line="72" selection-end-column="54" />
           <folding>
-            <element signature="e#682#698#0" expanded="true" />
-            <marker date="1463498763034" expanded="true" signature="2402:2447" placeholder="CREATE TABLE... processed" />
-            <marker date="1463498763034" expanded="true" signature="2560:2594" placeholder="SELECT * FRO... processed" />
-            <marker date="1463498763034" expanded="true" signature="2664:2695" placeholder="INSERT INTO processed... " />
+            <element signature="e#688#704#0" expanded="true" />
+            <marker date="1463515310363" expanded="true" signature="2698:2743" placeholder="CREATE TABLE... processed" />
+            <marker date="1463515310363" expanded="true" signature="2866:2900" placeholder="SELECT * FRO... processed" />
+            <marker date="1463515310363" expanded="true" signature="2970:3001" placeholder="INSERT INTO processed... " />
           </folding>
         </state>
       </provider>

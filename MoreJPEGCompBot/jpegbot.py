@@ -13,14 +13,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Author: Reddit: /u/Arwic
-		GitHub: https://github.com/Arwic
+        GitHub: https://github.com/Arwic
 """
 
 import traceback
 import praw
 import time
 import sqlite3
-import threading
 import os
 import pyimgur
 import optparse
@@ -34,13 +33,20 @@ black_listed_authors = []
 triggers = [
     'needs more jpeg compression',
     'needs more jpg compression',
+    'needs more jpeg',
+    'needs more jpg',
+    'nice jpeg compression',
+    'nice jpg compression',
     'nice jpeg',
     'nice jpg',
-    'needs more jpeg',
-    'needs more jpg']
+    'need any more jpeg compression',
+    'need any more jpg compression',
+    'need any more jpeg',
+    'need any more jpg'
+]
 max_pull = 100
-pull_period = 30
-compression_quality = 5
+pull_period = 60
+compression_quality = 1
 direct_imgur_link = 'http://i.imgur.com/'
 indirect_imgur_link = 'http://imgur.com/'
 imgur_url = 'imgur.com'
@@ -52,9 +58,10 @@ reply_template = \
 
 ---
 
-^This ^message ^was ^created ^by ^a ^bot [^[Contact ^author]](http://np.reddit.com/message/compose/?to=Arwic&amp;subject=MoreJPEGCompBot)[^[Source ^code]](https://github.com/Arwic/RedditBots)
+^(I am a bot) [^([Contact Author])](http://np.reddit.com/message/compose/?to=Arwic&amp;subject=MoreJPEGCompBot)[^([Source Code])](https://github.com/Arwic/RedditBots)
 '''
 debug_truncation_len = 20
+imgur_download_size = 'large_thumbnail'  # ‘small_square’, ‘big_square’, ‘small_thumbnail’, ‘medium_thumbnail’, ‘large_thumbnail’, ‘huge_thumbnail’
 reddit = None
 imgur = None
 sql = None
@@ -62,8 +69,8 @@ cur = None
 
 
 def auth_reddit():
-    print('Attempting to authenticate with reddit...')
     global reddit
+    print('Attempting to authenticate with reddit...')
     reddit = praw.Reddit(reddit_app_ua)
     reddit.set_oauth_app_info(reddit_app_id, reddit_app_secret, reddit_app_uri)
     reddit.refresh_access_information(reddit_app_refresh)
@@ -71,15 +78,15 @@ def auth_reddit():
 
 
 def auth_imgur():
-    print('Attempting to authenticate with imgur...')
     global imgur
+    print('Attempting to authenticate with imgur...')
     imgur = pyimgur.Imgur(imgur_app_id, imgur_app_secret)
     print('Success!')
 
 
 def auth_db():
-    print('Attempting to connect to database...')
     global sql, cur
+    print('Attempting to connect to database...')
     sql = sqlite3.connect(db_file)
     cur = sql.cursor()
     cur.execute('CREATE TABLE IF NOT EXISTS processed(ID TEXT)')
@@ -88,7 +95,8 @@ def auth_db():
     return sql, cur
 
 
-def has_replied(sql, cur, cid):
+def has_replied(cid):
+    global sql, cur
     cur.execute('SELECT * FROM processed WHERE ID=?', [cid])
     if cur.fetchone():
         return True
@@ -108,20 +116,20 @@ def imgur_url_to_id(url):
 
 
 def download_image(imgur_id):
-    print('Downloading image', imgur_id)
     global imgur
+    print('Downloading image', imgur_id)
     image_handle = imgur.get_image(imgur_id)
-    path = image_handle.download(path=temp_dir, overwrite=True)
+    path = image_handle.download(path=temp_dir, overwrite=True, size=imgur_download_size)
     print('Success!', path)
     return path
 
 
 def upload_image(path):
-    print('Uploading image', path)
     global imgur
+    print('Uploading image', path)
     uploaded_image = imgur.upload_image(path, title="NEEDS MORE JPEG COMPRESSION")
     print('Success!', uploaded_image.link)
-    return uploaded_image
+    return uploaded_image.link
 
 
 def compress_image(img_path):
@@ -144,9 +152,9 @@ def reply(submission, comment):
             break
         image_path = download_image(imgur_id)
         compressed_image_path = compress_image(image_path)
-        uploaded_image = upload_image(compressed_image_path)
+        uploaded_image_link = upload_image(compressed_image_path)
         try:
-            comment.reply(reply_template % uploaded_image.link)
+            comment.reply(reply_template % uploaded_image_link)
             print('Reply: Reply was submitted successfully')
             break
         except praw.errors.RateLimitExceeded as error:
@@ -155,14 +163,15 @@ def reply(submission, comment):
 
 
 def scan():
-    print('Scanning subreddits: %s', subreddits)
+    print('Scanning subreddits: %s' % subreddits)
     sr = reddit.get_subreddit(subreddits)
     submissions = sr.get_new(limit=max_pull)
     for submission in submissions:
-        print('Parsing submission id="%s" name="%s" author="%s"' % (submission.id, submission.name, submission.author))
+        print('Parsing submission id="%s" title="%s" author="%s"' %
+              (submission.id, submission.title[:debug_truncation_len], submission.author))
         # check if it is an imgur submission
         if imgur_url not in submission.url:
-            print('Submission not supported', submission.url)
+            print('Scan: Submission id="%s" is not supported, ignoring it' % submission.id)
             continue
         for comment in submission.comments:
             # check if the author still exists
@@ -175,7 +184,7 @@ def scan():
                 continue
 
             # check if we have already replied to this comment
-            if has_replied(sql, cur, comment.id):
+            if has_replied(comment.id):
                 print('Scan: Comment id="%s" has already been parsed, ignoring it' % comment.id)
                 continue
 
@@ -210,20 +219,22 @@ def prepare_env():
 
 
 def main():
+    global compression_quality
     parser = optparse.OptionParser()
     parser.add_option('-q', '--quality', dest='quality',
                       help='sets the quality of compression',
-                      default='5',
+                      default=compression_quality,
                       nargs=1)
 
     options, arguments = parser.parse_args()
 
     try:
-        global compression_quality
         compression_quality = int(options.quality)
     except TypeError:
         print('Invalid compression quality')
         exit(1)
+
+    prepare_env()
 
     auth_reddit()
     auth_imgur()
@@ -233,7 +244,7 @@ def main():
             scan()
         except KeyboardInterrupt:
             break
-        except Exception:
+        except:
             traceback.print_exc()
         print('Running again in', pull_period, 'seconds')
         sql.commit()
