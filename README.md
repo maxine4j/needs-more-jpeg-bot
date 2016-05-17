@@ -4,6 +4,6 @@
 
 /u/Arwic
 
-##Needs More JPEG Compression: 
+##Needs More JPEG Compression Bot: 
   
-  This bot applies jpeg compression to images when a user comments 'needs more jpeg compression' on an image submission or a comment with a link to an image
+  This bot will reply to a user who comments about the poor quality of a submitted jpeg with a lower quality version of the same image.
