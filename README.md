@@ -15,6 +15,7 @@ This bot will reply to a user who comments about the poor quality of a submitted
 
 ##Installation:
 
+    $ git clone https://github.com/Arwic/RedditBots.git
     $ sudo apt-get install python3
     $ sudo pip3 install praw pyimgur pillow
     
@@ -22,7 +23,7 @@ This bot will reply to a user who comments about the poor quality of a submitted
 
     $ python3 jpegbot.py <args>
     
-####Arguments:
+#####Arguments:
 
 | Switch | Description |
 | --- | --- |
