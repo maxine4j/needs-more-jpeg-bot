@@ -51,7 +51,7 @@ direct_imgur_link = 'http://i.imgur.com/'
 indirect_imgur_link = 'http://imgur.com/'
 imgur_url = 'imgur.com'
 db_file = 'jpegbot.db'
-temp_dir = 'temp'
+temp_dir = '.jpegbot'
 reply_template = \
 '''
 [Here you go](%s)
@@ -68,6 +68,7 @@ sql = None
 cur = None
 
 
+# connects to reddit with praw
 def auth_reddit():
     global reddit
     print('Attempting to authenticate with reddit...')
@@ -77,6 +78,7 @@ def auth_reddit():
     print('Success')
 
 
+# connects to imgur with pyimgur
 def auth_imgur():
     global imgur
     print('Attempting to authenticate with imgur...')
@@ -84,6 +86,7 @@ def auth_imgur():
     print('Success!')
 
 
+# connects to the sqlite db
 def auth_db():
     global sql, cur
     print('Attempting to connect to database...')
@@ -92,19 +95,27 @@ def auth_db():
     cur.execute('CREATE TABLE IF NOT EXISTS processed(ID TEXT)')
     sql.commit()
     print('Success!')
-    return sql, cur
 
 
-def has_replied(cid):
+# checks whether a comment has been parsed
+# returns: parsed
+def has_parsed(cid):
     global sql, cur
     cur.execute('SELECT * FROM processed WHERE ID=?', [cid])
     if cur.fetchone():
         return True
-    cur.execute('INSERT INTO processed VALUES(?)', [cid])
-    sql.commit()
     return False
 
 
+# marks a comment as parsed to we can ignore it next check
+def mark_parsed(cid):
+    global sql, cur
+    cur.execute('INSERT INTO processed VALUES(?)', [cid])
+    sql.commit()
+
+
+# parses an imgur url
+# returns: imgur image id or None on failure
 def imgur_url_to_id(url):
     if direct_imgur_link in url:
         return url[19:-4]
@@ -115,6 +126,8 @@ def imgur_url_to_id(url):
         return None
 
 
+# downloads an image from imgur
+# returns: image path
 def download_image(imgur_id):
     global imgur
     print('Downloading image', imgur_id)
@@ -124,6 +137,8 @@ def download_image(imgur_id):
     return path
 
 
+# uploads an image to imgur
+# returns: image url
 def upload_image(path):
     global imgur
     print('Uploading image', path)
@@ -132,6 +147,8 @@ def upload_image(path):
     return uploaded_image.link
 
 
+# compresses an image
+# returns: path to compressed image
 def compress_image(img_path):
     print('Compressing image', img_path)
     compressed_path = os.path.splitext(img_path)[0] + '_c.jpg'
@@ -143,25 +160,28 @@ def compress_image(img_path):
     return compressed_path
 
 
+# replies to a comment
 def reply(submission, comment):
     print('Reply: Replying to comment id="%s" author="%s", body="%s"' % (comment.id, comment.author,
                                                                          comment.body[:debug_truncation_len]))
     while True:
+        # get the image's id
         imgur_id = imgur_url_to_id(submission.url)
         if imgur_id is None:
             break
-        image_path = download_image(imgur_id)
-        compressed_image_path = compress_image(image_path)
-        uploaded_image_link = upload_image(compressed_image_path)
+        image_path = download_image(imgur_id)  # download,
+        compressed_image_path = compress_image(image_path)  # compress
+        uploaded_image_link = upload_image(compressed_image_path)  # and reupload the image
         try:
-            comment.reply(reply_template % uploaded_image_link)
+            comment.reply(reply_template % uploaded_image_link)  # reply to the comment
             print('Reply: Reply was submitted successfully')
             break
-        except praw.errors.RateLimitExceeded as error:
+        except praw.errors.RateLimitExceeded as error:  # keep trying if we hit the rate limit
             print('Rate limit exceeded! Sleeping for', error.sleep_time, 'seconds')
             time.sleep(error.sleep_time)
 
 
+# scans the indicated subreddits for comments
 def scan():
     print('Scanning subreddits: %s' % subreddits)
     sr = reddit.get_subreddit(subreddits)
@@ -183,8 +203,8 @@ def scan():
                 print('Scan: Comment id="%s" has been deleted or removed, ignoring it' % comment.id)
                 continue
 
-            # check if we have already replied to this comment
-            if has_replied(comment.id):
+            # check if we have already parsed this comment
+            if has_parsed(comment.id):
                 print('Scan: Comment id="%s" has already been parsed, ignoring it' % comment.id)
                 continue
 
@@ -208,18 +228,24 @@ def scan():
                 if black_listed:
                     print('Scan: author="%s" is black listed, ignoring comment' % c_author)
                     continue
+
+            # mark the comment as parsed so we don't process it again
+            mark_parsed(comment.id)
+
             c_body = comment.body.lower()
             if any(trigger in c_body.lower() for trigger in triggers):
                 reply(submission, comment)
 
 
+# prepares the programs environment
 def prepare_env():
     if not os.path.isdir(temp_dir):
         os.mkdir(temp_dir)
 
 
+# main
 def main():
-    global compression_quality
+    global compression_quality, sql
     parser = optparse.OptionParser()
     parser.add_option('-q', '--quality', dest='quality',
                       help='sets the quality of compression',
@@ -244,11 +270,14 @@ def main():
             scan()
         except KeyboardInterrupt:
             break
-        except:
+        except:  # don't crash if there was an error
             traceback.print_exc()
         print('Running again in', pull_period, 'seconds')
-        sql.commit()
         time.sleep(pull_period)
+
+    # close db
+    sql.commit()
+    sql.close()
 
 
 if __name__ == '__main__':
