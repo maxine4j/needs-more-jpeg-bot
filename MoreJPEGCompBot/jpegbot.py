@@ -27,45 +27,115 @@ from PIL import Image
 from oauth import reddit_app_ua, reddit_app_id, reddit_app_secret, reddit_app_uri, reddit_app_refresh
 from oauth import imgur_app_id, imgur_app_secret
 
-subreddits = 'Arwic'  # this can be a multireddit, i.e. sub1+sub2+sub3
+dir_root = '.jpegbot'
+dir_images = os.path.join(dir_root, 'images')
+path_triggers = os.path.join(dir_root, 'triggers.txt')
+path_subs = os.path.join(dir_root, 'subreddits.txt')
+path_whitelist_author = os.path.join(dir_root, 'author_whitelist.txt')
+path_blacklist_author = os.path.join(dir_root, 'author_blacklist.txt')
+path_whitelist_sub = os.path.join(dir_root, 'subreddit_whitelist.txt')
+path_blacklist_sub = os.path.join(dir_root, 'subreddit_blacklist.txt')
+path_reply_template = os.path.join(dir_root, 'reply_template.txt')
+path_db = os.path.join(dir_root, 'jpegbot.db')
+
+subreddits = ''
+reply_template = ''
 white_listed_authors = []
 black_listed_authors = []
-triggers = [
-    'needs more jpeg compression',
-    'needs more jpg compression',
-    'needs more jpeg',
-    'needs more jpg',
-    'nice jpeg compression',
-    'nice jpg compression',
-    'nice jpeg',
-    'nice jpg',
-    'need any more jpeg compression',
-    'need any more jpg compression',
-    'need any more jpeg',
-    'need any more jpg'
-]
+white_listed_subs = []
+black_listed_subs = []
+triggers = []
+
+imgur_download_size = 'medium_thumbnail'  # ‘small_square’, ‘big_square’, ‘small_thumbnail’, ‘medium_thumbnail’, ‘large_thumbnail’, ‘huge_thumbnail’
 max_pull = 100
-pull_period = 60
+pull_period = 120
 compression_quality = 1
+debug_truncation_len = 20
 direct_imgur_link = 'http://i.imgur.com/'
 indirect_imgur_link = 'http://imgur.com/'
 imgur_url = 'imgur.com'
-db_file = 'jpegbot.db'
-temp_dir = '.jpegbot'
-reply_template = \
-'''
-[Here you go](%s)
 
----
-
-^(I am a bot) [^([Contact Author])](http://np.reddit.com/message/compose/?to=Arwic&amp;subject=MoreJPEGCompBot)[^([Source Code])](https://github.com/Arwic/RedditBots)
-'''
-debug_truncation_len = 20
-imgur_download_size = 'large_thumbnail'  # ‘small_square’, ‘big_square’, ‘small_thumbnail’, ‘medium_thumbnail’, ‘large_thumbnail’, ‘huge_thumbnail’
 reddit = None
 imgur = None
 sql = None
 cur = None
+
+
+def load_data():
+    global subreddits, white_listed_authors, black_listed_authors, \
+        white_listed_subs, black_listed_subs, triggers, reply_template
+
+    global path_triggers, path_subs, path_whitelist_author, \
+        path_blacklist_author, path_whitelist_sub, \
+        path_blacklist_sub, path_reply_template
+
+    try:
+        with open(path_triggers, 'r') as file_handle:
+            for line in file_handle.readlines():
+                triggers.append(line[:-1].lower())  # remove new line character
+        if triggers is []:
+            print('Error: There are no triggers to watch for. Add some to this file: %s' % path_triggers)
+            exit(1)
+    except:
+        print('Error: Bad trigger file: %s' % path_triggers)
+        exit(1)
+
+    try:
+        with open(path_subs, 'r') as file_handle:
+            for line in file_handle.readlines():
+                subreddits += '+%s' % line[:-1].lower()  # remove new line character
+            subreddits = subreddits[1:]  # remove the first '+'
+        if subreddits is '':
+            print('Error: There are no subreddits to scan. Add some to this file: %s' % path_subs)
+            exit(1)
+    except:
+        print('Error: Bad subreddit file: %s' % path_subs)
+        exit(1)
+
+    try:
+        with open(path_whitelist_author, 'r') as file_handle:
+            for line in file_handle.readlines():
+                white_listed_authors.append(line[:-1].lower())  # remove new line character
+    except:
+        print('Error: Bad author whitelist file: %s' % path_whitelist_author)
+        exit(1)
+
+    try:
+        with open(path_blacklist_author, 'r') as file_handle:
+            for line in file_handle.readlines():
+                black_listed_authors.append(line[:-1].lower())  # remove new line character
+    except:
+        print('Error: Bad author blacklist file: %s' % path_blacklist_author)
+        exit(1)
+
+    try:
+        with open(path_whitelist_sub, 'r') as file_handle:
+            for line in file_handle.readlines():
+                white_listed_subs.append(line[:-1].lower())  # remove new line character
+    except:
+        print('Error: Bad subreddit whitelist file: %s' % path_whitelist_sub)
+        exit(1)
+
+    try:
+        with open(path_blacklist_sub, 'r') as file_handle:
+            for line in file_handle.readlines():
+                black_listed_subs.append(line[:-1].lower())  # remove new line character
+    except:
+        print('Error: Bad subreddit blacklist file: %s' % path_blacklist_sub)
+        exit(1)
+
+    try:
+        with open(path_reply_template, 'r') as file_handle:
+            reply_template = file_handle.read()[:-1]  # remove new line character
+        if '%s' not in reply_template:
+            print('Error: The reply template must contain a single "%s" where the image link will go')
+            exit(1)
+        if reply_template is '':
+            print('Error: There isn\'t a reply template. Add one to this file: %s' % path_subs)
+            exit(1)
+    except:
+        print('Error: Bad reply template file: %s' % path_reply_template)
+        exit(1)
 
 
 # connects to reddit with praw
@@ -90,7 +160,7 @@ def auth_imgur():
 def auth_db():
     global sql, cur
     print('Attempting to connect to database...')
-    sql = sqlite3.connect(db_file)
+    sql = sqlite3.connect(path_db)
     cur = sql.cursor()
     cur.execute('CREATE TABLE IF NOT EXISTS processed(ID TEXT)')
     sql.commit()
@@ -132,7 +202,7 @@ def download_image(imgur_id):
     global imgur
     print('Downloading image', imgur_id)
     image_handle = imgur.get_image(imgur_id)
-    path = image_handle.download(path=temp_dir, overwrite=True, size=imgur_download_size)
+    path = image_handle.download(path=dir_images, overwrite=True, size=imgur_download_size)
     print('Success!', path)
     return path
 
@@ -187,11 +257,25 @@ def scan():
     sr = reddit.get_subreddit(subreddits)
     submissions = sr.get_new(limit=max_pull)
     for submission in submissions:
-        print('Parsing submission id="%s" title="%s" author="%s"' %
-              (submission.id, submission.title[:debug_truncation_len], submission.author))
+        sub_name = submission.subreddit.display_name.lower()
+        # check if the subreddit is whitelisted
+        if white_listed_subs is []:
+            if not any(sub == sub_name for sub in white_listed_subs):
+                print('Scan: subreddit="%s" is not white listed, ignoring submission' % sub_name)
+                continue
+
+        # check if the subreddit is blacklisted
+        if black_listed_subs is []:
+            if any(sub == sub_name for sub in black_listed_subs):
+                print('Scan: subreddit="%s" is black listed, ignoring submission' % sub_name)
+                continue
+
+        print('Scanning: submission id="%s" sub="%s" title="%s" author="%s"' %
+              (submission.id, submission.subreddit.display_name[:debug_truncation_len],
+               submission.title[:debug_truncation_len], submission.author.name[:debug_truncation_len]))
         # check if it is an imgur submission
         if imgur_url not in submission.url:
-            print('Scan: Submission id="%s" is not supported, ignoring it' % submission.id)
+            # print('Scan: Submission id="%s" is not supported, ignoring it' % submission.id)
             continue
         for comment in submission.comments:
             # check if the author still exists
@@ -211,24 +295,15 @@ def scan():
             # mark the comment as parsed so we don't process it again
             mark_parsed(comment.id)
 
-            # check if the comment author is white listed
-            if white_listed_authors != []:
-                white_listed = False
-                for author in white_listed_authors:
-                    if author.lower() == c_author:
-                        white_listed = True
-                        break
-                if not white_listed:
+            # check if the comment author is whitelisted
+            if white_listed_authors is []:
+                if not any(author.lower() == c_author for author in white_listed_authors):
                     print('Scan: author="%s" is not white listed, ignoring comment' % c_author)
                     continue
-            # check if the comment author is black listed
-            if black_listed_authors != []:
-                black_listed = False
-                for author in black_listed_authors:
-                    if author.lower() == c_author.lower():
-                        black_listed = True
-                        break
-                if black_listed:
+
+            # check if the comment author is blacklisted
+            if black_listed_authors is []:
+                if any(author.lower() == c_author for author in black_listed_authors):
                     print('Scan: author="%s" is black listed, ignoring comment' % c_author)
                     continue
 
@@ -239,8 +314,10 @@ def scan():
 
 # prepares the programs environment
 def prepare_env():
-    if not os.path.isdir(temp_dir):
-        os.mkdir(temp_dir)
+    if not os.path.isdir(dir_root):
+        os.mkdir(dir_root)
+    if not os.path.isdir(dir_images):
+        os.mkdir(dir_images)
 
 
 # main
@@ -261,6 +338,7 @@ def main():
         exit(1)
 
     prepare_env()
+    load_data()
 
     auth_reddit()
     auth_imgur()

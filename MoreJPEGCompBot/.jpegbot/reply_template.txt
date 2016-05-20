@@ -1,0 +1,5 @@
+[Here you go](%s)
+
+---
+
+^(I am a bot) [^([Contact Author])](http://np.reddit.com/message/compose/?to=Arwic&amp;subject=MoreJPEGCompBot)[^([Source Code])](https://github.com/Arwic/RedditBots)
