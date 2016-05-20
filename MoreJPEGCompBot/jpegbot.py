@@ -255,7 +255,7 @@ def reply(submission, comment):
 def scan():
     print('Scanning subreddits: %s' % subreddits)
     sr = reddit.get_subreddit(subreddits)
-    submissions = sr.get_new(limit=max_pull)
+    submissions = sr.get_hot(limit=max_pull)
     for submission in submissions:
         sub_name = submission.subreddit.display_name.lower()
         # check if the subreddit is whitelisted

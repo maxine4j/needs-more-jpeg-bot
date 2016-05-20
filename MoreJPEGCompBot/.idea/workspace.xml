@@ -35,13 +35,13 @@
       <file leaf-file-name="jpegbot.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/jpegbot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.66062605">
-              <caret line="46" column="13" selection-start-line="46" selection-start-column="13" selection-end-line="46" selection-end-column="13" />
+            <state vertical-scroll-proportion="0.51235586">
+              <caret line="257" column="28" selection-start-line="257" selection-start-column="28" selection-end-line="257" selection-end-column="28" />
               <folding>
                 <element signature="e#688#704#0" expanded="true" />
-                <marker date="1463765169721" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
-                <marker date="1463765169721" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
-                <marker date="1463765169721" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
+                <marker date="1463766418281" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
+                <marker date="1463766418281" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
+                <marker date="1463766418281" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
               </folding>
             </state>
           </provider>
@@ -453,9 +453,9 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#688#704#0" expanded="true" />
-            <marker date="1463765169721" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
-            <marker date="1463765169721" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
-            <marker date="1463765169721" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
+            <marker date="1463766418281" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
+            <marker date="1463766418281" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
+            <marker date="1463766418281" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
           </folding>
         </state>
       </provider>
@@ -474,9 +474,9 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#688#704#0" expanded="true" />
-            <marker date="1463765169721" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
-            <marker date="1463765169721" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
-            <marker date="1463765169721" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
+            <marker date="1463766418281" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
+            <marker date="1463766418281" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
+            <marker date="1463766418281" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
           </folding>
         </state>
       </provider>
@@ -495,9 +495,9 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#688#704#0" expanded="true" />
-            <marker date="1463765169721" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
-            <marker date="1463765169721" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
-            <marker date="1463765169721" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
+            <marker date="1463766418281" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
+            <marker date="1463766418281" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
+            <marker date="1463766418281" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
           </folding>
         </state>
       </provider>
@@ -516,9 +516,9 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#688#704#0" expanded="true" />
-            <marker date="1463765169721" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
-            <marker date="1463765169721" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
-            <marker date="1463765169721" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
+            <marker date="1463766418281" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
+            <marker date="1463766418281" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
+            <marker date="1463766418281" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
           </folding>
         </state>
       </provider>
@@ -537,9 +537,9 @@
           <caret line="3" column="19" selection-start-line="3" selection-start-column="5" selection-end-line="3" selection-end-column="19" />
           <folding>
             <element signature="e#688#704#0" expanded="true" />
-            <marker date="1463765169721" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
-            <marker date="1463765169721" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
-            <marker date="1463765169721" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
+            <marker date="1463766418281" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
+            <marker date="1463766418281" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
+            <marker date="1463766418281" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
           </folding>
         </state>
       </provider>
@@ -589,13 +589,13 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/jpegbot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.66062605">
-          <caret line="46" column="13" selection-start-line="46" selection-start-column="13" selection-end-line="46" selection-end-column="13" />
+        <state vertical-scroll-proportion="0.51235586">
+          <caret line="257" column="28" selection-start-line="257" selection-start-column="28" selection-end-line="257" selection-end-column="28" />
           <folding>
             <element signature="e#688#704#0" expanded="true" />
-            <marker date="1463765169721" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
-            <marker date="1463765169721" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
-            <marker date="1463765169721" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
+            <marker date="1463766418281" expanded="true" signature="5871:5916" placeholder="CREATE TABLE... processed" />
+            <marker date="1463766418281" expanded="true" signature="6079:6113" placeholder="SELECT * FRO... processed" />
+            <marker date="1463766418281" expanded="true" signature="6303:6334" placeholder="INSERT INTO processed... " />
           </folding>
         </state>
       </provider>
