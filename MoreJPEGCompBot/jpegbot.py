@@ -208,6 +208,9 @@ def scan():
                 print('Scan: Comment id="%s" has already been parsed, ignoring it' % comment.id)
                 continue
 
+            # mark the comment as parsed so we don't process it again
+            mark_parsed(comment.id)
+
             # check if the comment author is white listed
             if white_listed_authors != []:
                 white_listed = False
@@ -228,9 +231,6 @@ def scan():
                 if black_listed:
                     print('Scan: author="%s" is black listed, ignoring comment' % c_author)
                     continue
-
-            # mark the comment as parsed so we don't process it again
-            mark_parsed(comment.id)
 
             c_body = comment.body.lower()
             if any(trigger in c_body.lower() for trigger in triggers):
