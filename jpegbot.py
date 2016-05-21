@@ -41,10 +41,10 @@ imgur_url = 'imgur.com'
 
 # from config file
 imgur_download_size = 'medium_thumbnail'
-pull_mode = 'hot'
+compression_quality = 1
 pull_size = None
 pull_period = 5
-compression_quality = 1
+pull_modes = []
 triggers = []
 subreddits = []
 black_listed_authors = []
@@ -70,18 +70,18 @@ comments_parsed = 0
 
 
 def load_config():
-    global pull_mode, pull_size, pull_period, compression_quality, \
+    global pull_modes, pull_size, pull_period, compression_quality, \
         imgur_download_size, triggers, subreddits, black_listed_authors, \
         white_listed_authors, black_listed_subs, white_listed_subs, reply_template
 
     try:
         with open(path_config, 'r') as file_handle:
             config = json.load(file_handle)
-        pull_mode = config['pull_mode']
-        pull_size = config['pull_size']
-        pull_period = config['pull_period']
         compression_quality = config['compression_quality']
         imgur_download_size = config['imgur_download_size']
+        pull_size = config['pull_size']
+        pull_period = config['pull_period']
+        pull_modes = config['pull_modes']
         triggers = config['triggers']
         subreddits = config['subreddits']
         black_listed_authors = config['author_blacklist']
@@ -258,82 +258,83 @@ def get_submissions(subreddit, mode, maxpull):
 # scans the indicated subreddits for comments
 def scan():
     global total_scans
-    for subreddit in subreddits:
-        try:
-            print('Scan: Scanning subreddit: %s' % subreddit)
-            sr = reddit.get_subreddit(subreddit)
-            print('Scan: Retrieving %s submissions' % pull_mode)
-            submissions = get_submissions(sr, pull_mode, pull_size)
-        except praw.errors.InvalidSubreddit:
-            print('Error: A subreddit named "%s" does not exist!' % subreddit)
+    for pull_mode in pull_modes:
+        for subreddit in subreddits:
+            try:
+                print('Scan: Scanning subreddit: %s' % subreddit)
+                sr = reddit.get_subreddit(subreddit)
+                print('Scan: Retrieving %s submissions' % pull_mode)
+                submissions = get_submissions(sr, pull_mode, pull_size)
+            except praw.errors.InvalidSubreddit:
+                print('Error: A subreddit named "%s" does not exist!' % subreddit)
 
-        for submission in submissions:
-            subreddit = submission.subreddit
-            subreddit_name = subreddit.display_name.lower()
-            submission_id = submission.id
-            submission_title = submission.title.lower()
-            submission_author = submission.author.name.lower()
-            submission_url = submission.url
+            for submission in submissions:
+                subreddit = submission.subreddit
+                subreddit_name = subreddit.display_name.lower()
+                submission_id = submission.id
+                submission_title = submission.title.lower()
+                submission_author = submission.author.name.lower()
+                submission_url = submission.url
 
-            # this is very slow as it has to make an api call for EACH comment
-            #submission.replace_more_comments(limit=None, threshold=0)
-            comments = list(submission.comments)
+                # this is very slow as it has to make an api call for EACH comment
+                #submission.replace_more_comments(limit=None, threshold=0)
+                comments = list(submission.comments)
 
-            # check if the subreddit is whitelisted
-            if white_listed_subs != []:
-                if not any(sub == subreddit_name for sub in white_listed_subs):
-                    print('\tScan: subreddit="%s" is not white listed, ignoring submission' % subreddit_name)
-                    continue
-
-            # check if the subreddit is blacklisted
-            if black_listed_subs != []:
-                if any(sub == subreddit_name for sub in black_listed_subs):
-                    print('\tScan: subreddit="%s" is black listed, ignoring submission' % subreddit_name)
-                    continue
-
-            print('\tScan: submission id="%s" sub="%s" title="%s" author="%s" comment(s)="%i"' %
-                  (submission_id, subreddit_name[:debug_truncation_len],
-                   submission_title[:debug_truncation_len], submission_author[:debug_truncation_len], len(comments)))
-
-            # check if it is an imgur submission
-            if imgur_url not in submission_url:
-                #print('Scan: Submission id="%s" is not supported, ignoring it' % sub_id)
-                continue
-
-            for comment in submission.comments:                
-                # check if we have already parsed this comment
-                comment_id = comment.id
-                if has_parsed(comment_id):
-                    #print('\t\tScan: Comment id="%s" has already been parsed, ignoring it' % comment_id)
-                    continue
-
-                # mark the comment as parsed so we don't process it again
-                mark_parsed(comment_id)
-                
-                # check if the author still exists
-                try:
-                    comment_author = comment.author.name.lower()
-                    comment_body = strip_bad_chars('\n\t', comment.body.lower())
-                    print('\t\tScan: Parsing comment id="%s" author="%s", body="%s"' %
-                          (comment_id, comment_author, comment_body[:debug_truncation_len]))
-                except AttributeError:
-                    #print('\t\tScan: Comment id="%s" has been deleted or removed, ignoring it' % comment_id)
-                    continue
-
-                # check if the comment author is whitelisted
-                if white_listed_authors != []:
-                    if not any(author.lower() == comment_author for author in white_listed_authors):
-                        #print('\t\tScan: author="%s" is not white listed, ignoring comment' % c_author)
+                # check if the subreddit is whitelisted
+                if white_listed_subs != []:
+                    if not any(sub == subreddit_name for sub in white_listed_subs):
+                        print('\tScan: subreddit="%s" is not white listed, ignoring submission' % subreddit_name)
                         continue
 
-                # check if the comment author is blacklisted
-                if black_listed_authors != []:
-                    if any(author.lower() == comment_author for author in black_listed_authors):
-                        #print('\t\tScan: author="%s" is black listed, ignoring comment' % c_author)
+                # check if the subreddit is blacklisted
+                if black_listed_subs != []:
+                    if any(sub == subreddit_name for sub in black_listed_subs):
+                        print('\tScan: subreddit="%s" is black listed, ignoring submission' % subreddit_name)
                         continue
 
-                if any(trigger in comment_body for trigger in triggers):
-                    reply(submission, comment)
+                print('\tScan: submission id="%s" sub="%s" title="%s" author="%s" comment(s)="%i"' %
+                      (submission_id, subreddit_name[:debug_truncation_len],
+                       submission_title[:debug_truncation_len], submission_author[:debug_truncation_len], len(comments)))
+
+                # check if it is an imgur submission
+                if imgur_url not in submission_url:
+                    #print('Scan: Submission id="%s" is not supported, ignoring it' % sub_id)
+                    continue
+
+                for comment in submission.comments:
+                    # check if we have already parsed this comment
+                    comment_id = comment.id
+                    if has_parsed(comment_id):
+                        #print('\t\tScan: Comment id="%s" has already been parsed, ignoring it' % comment_id)
+                        continue
+
+                    # mark the comment as parsed so we don't process it again
+                    mark_parsed(comment_id)
+
+                    # check if the author still exists
+                    try:
+                        comment_author = comment.author.name.lower()
+                        comment_body = strip_bad_chars('\n\t', comment.body.lower())
+                        print('\t\tScan: Parsing comment id="%s" author="%s", body="%s"' %
+                              (comment_id, comment_author, comment_body[:debug_truncation_len]))
+                    except AttributeError:
+                        #print('\t\tScan: Comment id="%s" has been deleted or removed, ignoring it' % comment_id)
+                        continue
+
+                    # check if the comment author is whitelisted
+                    if white_listed_authors != []:
+                        if not any(author.lower() == comment_author for author in white_listed_authors):
+                            #print('\t\tScan: author="%s" is not white listed, ignoring comment' % c_author)
+                            continue
+
+                    # check if the comment author is blacklisted
+                    if black_listed_authors != []:
+                        if any(author.lower() == comment_author for author in black_listed_authors):
+                            #print('\t\tScan: author="%s" is black listed, ignoring comment' % c_author)
+                            continue
+
+                    if any(trigger in comment_body for trigger in triggers):
+                        reply(submission, comment)
     total_scans += 1
 
 

@@ -1,9 +1,13 @@
 {
-	"pull_mode": "hot",
-	"pull_size": 200,
-	"pull_period": 5,
 	"compression_quality": 1,
 	"imgur_download_size": "medium_thumbnail",
+	"pull_size": 200,
+	"pull_period": 5,
+	"pull_modes":
+	[
+		"hot",
+		"new"
+	],
 	"triggers":
 	[
 		"needs more jpeg",
@@ -24,7 +28,6 @@
 	],
 	"author_whitelist":
 	[
-		"arwic"
 	],
 	"subreddit_blacklist":
 	[
@@ -90,6 +93,5 @@
 	],
 	"subreddit_whitelist":
 	[
-		"arwic"
 	]
 }
