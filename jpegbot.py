@@ -372,7 +372,7 @@ def main():
     auth_db()
 
     try:
-        #scan()
+        scan()
         # print stats
         print('Stats: Images downloaded =', images_downloaded)
         print('Stats: Images compressed =', images_compressed)
@@ -389,6 +389,7 @@ def main():
     sql.commit()
     sql.close()
 
+    # log results
     with open('log.txt', 'a') as file_handle:
         file_handle.write('images_downloaded = %i | images_uploaded = %i | comments_parsed = %i | comments_replied_to = %i\n'
                           % (images_downloaded, images_uploaded, comments_parsed, comments_replied_to))
