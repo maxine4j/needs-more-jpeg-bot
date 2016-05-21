@@ -310,7 +310,7 @@ def scan():
             submission_author = submission.author.name.lower()
             submission_url = submission.url
             comments = list(submission.comments)
-            print('Scan: Retrieved %i comment(s) for submission id="%s"' % (len(submission.comments), submission_id))
+            print('\tScan: Retrieved %i comment(s) for submission id="%s"' % (len(submission.comments), submission_id))
             
             # check if the subreddit is whitelisted
             if white_listed_subs != []:
