@@ -27,7 +27,7 @@ from PIL import Image
 from oauth import reddit_app_ua, reddit_app_id, reddit_app_secret, reddit_app_uri, reddit_app_refresh
 from oauth import imgur_app_id, imgur_app_secret
 
-dir_root = '.jpegbot'
+dir_root = 'jpegbot-data'
 dir_images = os.path.join(dir_root, 'images')
 path_triggers = os.path.join(dir_root, 'triggers.txt')
 path_subs = os.path.join(dir_root, 'subreddits.txt')
@@ -47,8 +47,9 @@ black_listed_subs = []
 triggers = []
 
 imgur_download_size = 'medium_thumbnail'  # ‘small_square’, ‘big_square’, ‘small_thumbnail’, ‘medium_thumbnail’, ‘large_thumbnail’, ‘huge_thumbnail’
-max_pull = 100
-pull_period = 120
+max_pull = 200  # number of posts pulled at a time
+pull_period = 5  # seconds
+pull_mode = 'hot'  # 'hot', 'new', 'rising', 'controversial', 'top'
 compression_quality = 1
 debug_truncation_len = 20
 direct_imgur_link = 'http://i.imgur.com/'
@@ -232,8 +233,8 @@ def compress_image(img_path):
 
 # replies to a comment
 def reply(submission, comment):
-    print('Reply: Replying to comment id="%s" author="%s", body="%s"' % (comment.id, comment.author,
-                                                                         comment.body[:debug_truncation_len]))
+    print('\t\t\tReply: Replying to comment id="%s" author="%s", body="%s"' % 
+          (comment.id, comment.author,comment.body[:debug_truncation_len]))
     while True:
         # get the image's id
         imgur_id = imgur_url_to_id(submission.url)
@@ -244,33 +245,50 @@ def reply(submission, comment):
         uploaded_image_link = upload_image(compressed_image_path)  # and reupload the image
         try:
             comment.reply(reply_template % uploaded_image_link)  # reply to the comment
-            print('Reply: Reply was submitted successfully')
+            print('\t\t\tReply: Reply was submitted successfully')
             break
         except praw.errors.RateLimitExceeded as error:  # keep trying if we hit the rate limit
-            print('Rate limit exceeded! Sleeping for', error.sleep_time, 'seconds')
+            print('\t\tRate limit exceeded! Sleeping for', error.sleep_time, 'seconds')
             time.sleep(error.sleep_time)
+
+
+# gets submissions with the given sort mode
+# mode = 'hot', 'new', 'rising', 'controversial', 'top'
+# returns: list of submissions from the given feed
+def get_submissions(subreddit, mode, maxpull):
+	if mode == 'hot':
+		return subreddit.get_hot(limit=maxpull)
+	if mode == 'new':
+		return subreddit.get_new(limit=maxpull)
+	if mode == 'rising':
+		return subreddit.get_rising(limit=maxpull)
+	if mode == 'controversial':
+		return subreddit.get_controversial(limit=maxpull)
+	if mode == 'top':
+		return subreddit.get_top(limit=maxpull)
 
 
 # scans the indicated subreddits for comments
 def scan():
-    print('Scanning subreddits: %s' % subreddits)
+    print('Scan: Scanning subreddits: %s' % subreddits)
     sr = reddit.get_subreddit(subreddits)
-    submissions = sr.get_hot(limit=max_pull)
+    print('Scan: Retriving %s submissions' % pull_mode)
+    submissions = get_submissions(sr, pull_mode, max_pull)
     for submission in submissions:
         sub_name = submission.subreddit.display_name.lower()
         # check if the subreddit is whitelisted
         if white_listed_subs is []:
             if not any(sub == sub_name for sub in white_listed_subs):
-                print('Scan: subreddit="%s" is not white listed, ignoring submission' % sub_name)
+                print('\tScan: subreddit="%s" is not white listed, ignoring submission' % sub_name)
                 continue
 
         # check if the subreddit is blacklisted
         if black_listed_subs is []:
             if any(sub == sub_name for sub in black_listed_subs):
-                print('Scan: subreddit="%s" is black listed, ignoring submission' % sub_name)
+                print('\tScan: subreddit="%s" is black listed, ignoring submission' % sub_name)
                 continue
 
-        print('Scanning: submission id="%s" sub="%s" title="%s" author="%s"' %
+        print('\tScanning: submission id="%s" sub="%s" title="%s" author="%s"' %
               (submission.id, submission.subreddit.display_name[:debug_truncation_len],
                submission.title[:debug_truncation_len], submission.author.name[:debug_truncation_len]))
         # check if it is an imgur submission
@@ -281,15 +299,15 @@ def scan():
             # check if the author still exists
             try:
                 c_author = comment.author.name.lower()
-                print('Scan: Parsing comment id="%s" author="%s", body="%s"' %
+                print('\t\tScan: Parsing comment id="%s" author="%s", body="%s"' %
                       (comment.id, comment.author, comment.body[:debug_truncation_len]))
             except AttributeError:
-                print('Scan: Comment id="%s" has been deleted or removed, ignoring it' % comment.id)
+                print('\t\tScan: Comment id="%s" has been deleted or removed, ignoring it' % comment.id)
                 continue
 
             # check if we have already parsed this comment
             if has_parsed(comment.id):
-                print('Scan: Comment id="%s" has already been parsed, ignoring it' % comment.id)
+                print('\t\tScan: Comment id="%s" has already been parsed, ignoring it' % comment.id)
                 continue
 
             # mark the comment as parsed so we don't process it again
@@ -298,13 +316,13 @@ def scan():
             # check if the comment author is whitelisted
             if white_listed_authors is []:
                 if not any(author.lower() == c_author for author in white_listed_authors):
-                    print('Scan: author="%s" is not white listed, ignoring comment' % c_author)
+                    print('\t\tScan: author="%s" is not white listed, ignoring comment' % c_author)
                     continue
 
             # check if the comment author is blacklisted
             if black_listed_authors is []:
                 if any(author.lower() == c_author for author in black_listed_authors):
-                    print('Scan: author="%s" is black listed, ignoring comment' % c_author)
+                    print('\t\tScan: author="%s" is black listed, ignoring comment' % c_author)
                     continue
 
             c_body = comment.body.lower()

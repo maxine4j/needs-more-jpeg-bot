@@ -70,3 +70,17 @@ oauth.py
 # Temp files
 temp
 
+# common image file formats
+*.tif
+*.gif
+*.jpeg
+*.jpg
+*.png
+
+# database file
+*.db
+
+# pycharm files
+.idea
+
+

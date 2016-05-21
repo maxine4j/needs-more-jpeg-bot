@@ -1,9 +1,0 @@
-# common image file formats
-*.tif
-*.gif
-*.jpeg
-*.jpg
-*.png
-
-# database file
-*.db
