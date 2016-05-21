@@ -6,7 +6,7 @@ This bot will reply to a user who comments about the poor quality of a submitted
 
 /u/Arwic
   
-###Features:
+##Features:
 * Blacklist
 * Whitelist
 * Multiple trigger phrases
