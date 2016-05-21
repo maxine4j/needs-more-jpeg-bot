@@ -23,44 +23,44 @@ import sqlite3
 import os
 import pyimgur
 import optparse
+import json
 from PIL import Image
 from oauth import reddit_app_ua, reddit_app_id, reddit_app_secret, reddit_app_uri, reddit_app_refresh
 from oauth import imgur_app_id, imgur_app_secret
 
 dir_root = 'jpegbot-data'
 dir_images = os.path.join(dir_root, 'images')
-path_triggers = os.path.join(dir_root, 'triggers.txt')
-path_subs = os.path.join(dir_root, 'subreddits.txt')
-path_whitelist_author = os.path.join(dir_root, 'author_whitelist.txt')
-path_blacklist_author = os.path.join(dir_root, 'author_blacklist.txt')
-path_whitelist_sub = os.path.join(dir_root, 'subreddit_whitelist.txt')
-path_blacklist_sub = os.path.join(dir_root, 'subreddit_blacklist.txt')
-path_reply_template = os.path.join(dir_root, 'reply_template.txt')
+path_config = os.path.join(dir_root, 'config.json')
+path_reply_template = os.path.join(dir_root, 'reply.txt')
 path_db = os.path.join(dir_root, 'jpegbot.db')
 
-reply_template = ''
-white_listed_authors = []
-black_listed_authors = []
-white_listed_subs = []
-black_listed_subs = []
-triggers = []
-subreddits = []
-
-imgur_download_size = 'medium_thumbnail'  # ‘small_square’, ‘big_square’, ‘small_thumbnail’, ‘medium_thumbnail’, ‘large_thumbnail’, ‘huge_thumbnail’
-max_pull = None  # number of posts pulled at a time
-pull_period = 5  # seconds
-pull_mode = 'hot'  # 'hot', 'new', 'rising', 'controversial', 'top'
-compression_quality = 1
-debug_truncation_len = 20
+debug_truncation_len = 50
 direct_imgur_link = 'http://i.imgur.com/'
 indirect_imgur_link = 'http://imgur.com/'
 imgur_url = 'imgur.com'
 
+# from config file
+imgur_download_size = 'medium_thumbnail'
+pull_mode = 'hot'
+pull_size = None
+pull_period = 5
+compression_quality = 1
+triggers = []
+subreddits = []
+black_listed_authors = []
+white_listed_authors = []
+black_listed_subs = []
+white_listed_subs = []
+reply_template = ''
+
+# api objects
 reddit = None
 imgur = None
+# db objects
 sql = None
 cur = None
 
+# stats
 images_downloaded = 0
 images_compressed = 0
 images_uploaded = 0
@@ -69,66 +69,28 @@ total_scans = 0
 comments_parsed = 0
 
 
-def load_data():
-    global subreddits, white_listed_authors, black_listed_authors, \
-        white_listed_subs, black_listed_subs, triggers, reply_template
-
-    global path_triggers, path_subs, path_whitelist_author, \
-        path_blacklist_author, path_whitelist_sub, \
-        path_blacklist_sub, path_reply_template
+def load_config():
+    global pull_mode, pull_size, pull_period, compression_quality, \
+        imgur_download_size, triggers, subreddits, black_listed_authors, \
+        white_listed_authors, black_listed_subs, white_listed_subs, reply_template
 
     try:
-        with open(path_triggers, 'r') as file_handle:
-            for line in file_handle.readlines():
-                triggers.append(line[:-1].lower())  # remove new line character
-        if triggers is []:
-            print('Error: There are no triggers to watch for. Add some to this file: %s' % path_triggers)
-            exit(1)
-    except:
-        print('Error: Bad trigger file: %s' % path_triggers)
-        exit(1)
-
-    try:
-        with open(path_subs, 'r') as file_handle:
-            for line in file_handle.readlines():
-                subreddits.append(line[:-1].lower())  # remove new line character
-        if subreddits is []:
-            print('Error: There are no subreddits to scan. Add some to this file: %s' % path_subs)
-            exit(1)
-    except:
-        print('Error: Bad subreddit file: %s' % path_subs)
-        exit(1)
-
-    try:
-        with open(path_whitelist_author, 'r') as file_handle:
-            for line in file_handle.readlines():
-                white_listed_authors.append(line[:-1].lower())  # remove new line character
-    except:
-        print('Error: Bad author whitelist file: %s' % path_whitelist_author)
-        exit(1)
-
-    try:
-        with open(path_blacklist_author, 'r') as file_handle:
-            for line in file_handle.readlines():
-                black_listed_authors.append(line[:-1].lower())  # remove new line character
-    except:
-        print('Error: Bad author blacklist file: %s' % path_blacklist_author)
-        exit(1)
-
-    try:
-        with open(path_whitelist_sub, 'r') as file_handle:
-            for line in file_handle.readlines():
-                white_listed_subs.append(line[:-1].lower())  # remove new line character
-    except:
-        print('Error: Bad subreddit whitelist file: %s' % path_whitelist_sub)
-        exit(1)
-
-    try:
-        with open(path_blacklist_sub, 'r') as file_handle:
-            for line in file_handle.readlines():
-                black_listed_subs.append(line[:-1].lower())  # remove new line character
-    except:
-        print('Error: Bad subreddit blacklist file: %s' % path_blacklist_sub)
+        with open(path_config, 'r') as file_handle:
+            config = json.load(file_handle)
+        pull_mode = config['pull_mode']
+        pull_size = config['pull_size']
+        pull_period = config['pull_period']
+        compression_quality = config['compression_quality']
+        imgur_download_size = config['imgur_download_size']
+        triggers = config['triggers']
+        subreddits = config['subreddits']
+        black_listed_authors = config['author_blacklist']
+        white_listed_authors = config['author_whitelist']
+        black_listed_subs = config['subreddit_blacklist']
+        white_listed_subs = config['subreddit_whitelist']
+    except Exception as e:
+        print('Error: Bad config file: %s' % path_config)
+        print(e)
         exit(1)
 
     try:
@@ -138,7 +100,7 @@ def load_data():
             print('Error: The reply template must contain a single "%s" where the image link will go')
             exit(1)
         if reply_template is '':
-            print('Error: There isn\'t a reply template. Add one to this file: %s' % path_subs)
+            print('Error: Empty reply template. Add one to this file: %s' % path_reply_template)
             exit(1)
     except:
         print('Error: Bad reply template file: %s' % path_reply_template)
@@ -268,7 +230,6 @@ def reply(submission, comment):
     _reply()
     
 
-
 # removes bad characters from string
 # returns: stripped string
 def strip_bad_chars(bad_chars, string):
@@ -282,26 +243,30 @@ def strip_bad_chars(bad_chars, string):
 # mode = 'hot', 'new', 'rising', 'controversial', 'top'
 # returns: list of submissions from the given feed
 def get_submissions(subreddit, mode, maxpull):
-	if mode == 'hot':
-		return subreddit.get_hot(limit=maxpull)
-	if mode == 'new':
-		return subreddit.get_new(limit=maxpull)
-	if mode == 'rising':
-		return subreddit.get_rising(limit=maxpull)
-	if mode == 'controversial':
-		return subreddit.get_controversial(limit=maxpull)
-	if mode == 'top':
-		return subreddit.get_top(limit=maxpull)
+    if mode == 'hot':
+        return subreddit.get_hot(limit=maxpull)
+    if mode == 'new':
+        return subreddit.get_new(limit=maxpull)
+    if mode == 'rising':
+        return subreddit.get_rising(limit=maxpull)
+    if mode == 'controversial':
+        return subreddit.get_controversial(limit=maxpull)
+    if mode == 'top':
+        return subreddit.get_top(limit=maxpull)
 
 
 # scans the indicated subreddits for comments
 def scan():
     global total_scans
     for subreddit in subreddits:
-        print('Scan: Scanning subreddit: %s' % subreddit)
-        sr = reddit.get_subreddit(subreddit)
-        print('Scan: Retrieving %s submissions' % pull_mode)
-        submissions = get_submissions(sr, pull_mode, max_pull)
+        try:
+            print('Scan: Scanning subreddit: %s' % subreddit)
+            sr = reddit.get_subreddit(subreddit)
+            print('Scan: Retrieving %s submissions' % pull_mode)
+            submissions = get_submissions(sr, pull_mode, pull_size)
+        except praw.errors.InvalidSubreddit:
+            print('Error: A subreddit named "%s" does not exist!' % subreddit)
+
         for submission in submissions:
             subreddit = submission.subreddit
             subreddit_name = subreddit.display_name.lower()
@@ -309,6 +274,9 @@ def scan():
             submission_title = submission.title.lower()
             submission_author = submission.author.name.lower()
             submission_url = submission.url
+
+            # this is very slow as it has to make an api call for EACH comment
+            #submission.replace_more_comments(limit=None, threshold=0)
             comments = list(submission.comments)
 
             # check if the subreddit is whitelisted
@@ -395,7 +363,7 @@ def main():
         exit(1)
 
     prepare_env()
-    load_data()
+    load_config()
 
     auth_reddit()
     auth_imgur()
