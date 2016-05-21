@@ -310,8 +310,7 @@ def scan():
             submission_author = submission.author.name.lower()
             submission_url = submission.url
             comments = list(submission.comments)
-            print('\tScan: Retrieved %i comment(s) for submission id="%s"' % (len(submission.comments), submission_id))
-            
+
             # check if the subreddit is whitelisted
             if white_listed_subs != []:
                 if not any(sub == subreddit_name for sub in white_listed_subs):
@@ -324,9 +323,9 @@ def scan():
                     print('\tScan: subreddit="%s" is black listed, ignoring submission' % subreddit_name)
                     continue
 
-            print('\tScan: submission id="%s" sub="%s" title="%s" author="%s"' %
+            print('\tScan: submission id="%s" sub="%s" title="%s" author="%s" comment(s)="%i"' %
                   (submission_id, subreddit_name[:debug_truncation_len],
-                   submission_title[:debug_truncation_len], submission_author[:debug_truncation_len]))
+                   submission_title[:debug_truncation_len], submission_author[:debug_truncation_len], len(comments)))
 
             # check if it is an imgur submission
             if imgur_url not in submission_url:
@@ -355,13 +354,13 @@ def scan():
 
                 # check if the comment author is whitelisted
                 if white_listed_authors != []:
-                    if not any(author.lower() == c_author for author in white_listed_authors):
+                    if not any(author.lower() == comment_author for author in white_listed_authors):
                         #print('\t\tScan: author="%s" is not white listed, ignoring comment' % c_author)
                         continue
 
                 # check if the comment author is blacklisted
                 if black_listed_authors != []:
-                    if any(author.lower() == c_author for author in black_listed_authors):
+                    if any(author.lower() == comment_author for author in black_listed_authors):
                         #print('\t\tScan: author="%s" is black listed, ignoring comment' % c_author)
                         continue
 
