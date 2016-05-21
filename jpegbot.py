@@ -38,13 +38,13 @@ path_blacklist_sub = os.path.join(dir_root, 'subreddit_blacklist.txt')
 path_reply_template = os.path.join(dir_root, 'reply_template.txt')
 path_db = os.path.join(dir_root, 'jpegbot.db')
 
-subreddits = ''
 reply_template = ''
 white_listed_authors = []
 black_listed_authors = []
 white_listed_subs = []
 black_listed_subs = []
 triggers = []
+subreddits = []
 
 imgur_download_size = 'medium_thumbnail'  # ‘small_square’, ‘big_square’, ‘small_thumbnail’, ‘medium_thumbnail’, ‘large_thumbnail’, ‘huge_thumbnail’
 max_pull = 200  # number of posts pulled at a time
@@ -60,6 +60,13 @@ reddit = None
 imgur = None
 sql = None
 cur = None
+
+images_downloaded = 0
+images_compressed = 0
+images_uploaded = 0
+comments_replied_to = 0
+total_scans = 0
+comments_parsed = 0
 
 
 def load_data():
@@ -84,9 +91,8 @@ def load_data():
     try:
         with open(path_subs, 'r') as file_handle:
             for line in file_handle.readlines():
-                subreddits += '+%s' % line[:-1].lower()  # remove new line character
-            subreddits = subreddits[1:]  # remove the first '+'
-        if subreddits is '':
+                subreddits.append(line[:-1].lower())  # remove new line character
+        if subreddits is []:
             print('Error: There are no subreddits to scan. Add some to this file: %s' % path_subs)
             exit(1)
     except:
@@ -180,9 +186,10 @@ def has_parsed(cid):
 
 # marks a comment as parsed to we can ignore it next check
 def mark_parsed(cid):
-    global sql, cur
+    global sql, cur, comments_parsed
     cur.execute('INSERT INTO processed VALUES(?)', [cid])
     sql.commit()
+    comments_parsed += 1
 
 
 # parses an imgur url
@@ -193,63 +200,82 @@ def imgur_url_to_id(url):
     elif indirect_imgur_link in url:
         return url[17:]
     else:
-        print('Imgur to ID: Bad URL: %s' % url)
+        print('\t\t\tImgur to ID: Bad URL: %s' % url)
         return None
 
 
 # downloads an image from imgur
 # returns: image path
 def download_image(imgur_id):
-    global imgur
-    print('Downloading image', imgur_id)
+    global imgur, images_downloaded
+    print('\t\t\tDownloading image', imgur_id)
     image_handle = imgur.get_image(imgur_id)
     path = image_handle.download(path=dir_images, overwrite=True, size=imgur_download_size)
-    print('Success!', path)
+    print('\t\t\tSuccess!', path)
+    images_downloaded += 1
     return path
 
 
 # uploads an image to imgur
 # returns: image url
 def upload_image(path):
-    global imgur
-    print('Uploading image', path)
+    global imgur, images_uploaded
+    print('\t\t\tUploading image', path)
     uploaded_image = imgur.upload_image(path, title="NEEDS MORE JPEG COMPRESSION")
-    print('Success!', uploaded_image.link)
+    print('\t\t\tSuccess!', uploaded_image.link)
+    images_uploaded += 1
     return uploaded_image.link
 
 
 # compresses an image
 # returns: path to compressed image
 def compress_image(img_path):
-    print('Compressing image', img_path)
+    global images_compressed
+    print('\t\t\tCompressing image', img_path)
     compressed_path = os.path.splitext(img_path)[0] + '_c.jpg'
     if os.path.isfile(compressed_path):
         os.remove(compressed_path)
     image = Image.open(img_path)
     image.save(compressed_path, 'JPEG', quality=compression_quality)
-    print('Success!', compressed_path)
+    print('\t\t\tSuccess!', compressed_path)
+    images_compressed += 1
     return compressed_path
 
 
 # replies to a comment
 def reply(submission, comment):
+    def _reply():
+        global comments_replied_to
+        while True:
+            # get the image's id
+            imgur_id = imgur_url_to_id(submission.url)
+            if imgur_id is None:
+                break
+            image_path = download_image(imgur_id)  # download,
+            compressed_image_path = compress_image(image_path)  # compress
+            uploaded_image_link = upload_image(compressed_image_path)  # and reupload the image
+            try:
+                comment.reply(reply_template % uploaded_image_link)  # reply to the comment
+                print('\t\t\tReply: Reply was submitted successfully')
+                comments_replied_to += 1
+                break
+            except praw.errors.RateLimitExceeded as error:  # keep trying if we hit the rate limit
+                print('\t\tRate limit exceeded! Sleeping for', error.sleep_time, 'seconds')
+                time.sleep(error.sleep_time)
+    
     print('\t\t\tReply: Replying to comment id="%s" author="%s", body="%s"' % 
-          (comment.id, comment.author,comment.body[:debug_truncation_len]))
-    while True:
-        # get the image's id
-        imgur_id = imgur_url_to_id(submission.url)
-        if imgur_id is None:
-            break
-        image_path = download_image(imgur_id)  # download,
-        compressed_image_path = compress_image(image_path)  # compress
-        uploaded_image_link = upload_image(compressed_image_path)  # and reupload the image
-        try:
-            comment.reply(reply_template % uploaded_image_link)  # reply to the comment
-            print('\t\t\tReply: Reply was submitted successfully')
-            break
-        except praw.errors.RateLimitExceeded as error:  # keep trying if we hit the rate limit
-            print('\t\tRate limit exceeded! Sleeping for', error.sleep_time, 'seconds')
-            time.sleep(error.sleep_time)
+          (comment.id, comment.author, comment.body[:debug_truncation_len]))
+    _reply()
+    
+
+
+# removes bad characters from string
+# returns: stripped string
+def strip_bad_chars(bad_chars, string):
+    s = string
+    for bad_char in bad_chars:
+        s = s.replace(bad_char, '')
+    return s
 
 
 # gets submissions with the given sort mode
@@ -270,64 +296,76 @@ def get_submissions(subreddit, mode, maxpull):
 
 # scans the indicated subreddits for comments
 def scan():
-    print('Scan: Scanning subreddits: %s' % subreddits)
-    sr = reddit.get_subreddit(subreddits)
-    print('Scan: Retriving %s submissions' % pull_mode)
-    submissions = get_submissions(sr, pull_mode, max_pull)
-    for submission in submissions:
-        sub_name = submission.subreddit.display_name.lower()
-        # check if the subreddit is whitelisted
-        if white_listed_subs is []:
-            if not any(sub == sub_name for sub in white_listed_subs):
-                print('\tScan: subreddit="%s" is not white listed, ignoring submission' % sub_name)
-                continue
-
-        # check if the subreddit is blacklisted
-        if black_listed_subs is []:
-            if any(sub == sub_name for sub in black_listed_subs):
-                print('\tScan: subreddit="%s" is black listed, ignoring submission' % sub_name)
-                continue
-
-        print('\tScanning: submission id="%s" sub="%s" title="%s" author="%s"' %
-              (submission.id, submission.subreddit.display_name[:debug_truncation_len],
-               submission.title[:debug_truncation_len], submission.author.name[:debug_truncation_len]))
-        # check if it is an imgur submission
-        if imgur_url not in submission.url:
-            # print('Scan: Submission id="%s" is not supported, ignoring it' % submission.id)
-            continue
-        for comment in submission.comments:
-            # check if the author still exists
-            try:
-                c_author = comment.author.name.lower()
-                print('\t\tScan: Parsing comment id="%s" author="%s", body="%s"' %
-                      (comment.id, comment.author, comment.body[:debug_truncation_len]))
-            except AttributeError:
-                print('\t\tScan: Comment id="%s" has been deleted or removed, ignoring it' % comment.id)
-                continue
-
-            # check if we have already parsed this comment
-            if has_parsed(comment.id):
-                print('\t\tScan: Comment id="%s" has already been parsed, ignoring it' % comment.id)
-                continue
-
-            # mark the comment as parsed so we don't process it again
-            mark_parsed(comment.id)
-
-            # check if the comment author is whitelisted
-            if white_listed_authors is []:
-                if not any(author.lower() == c_author for author in white_listed_authors):
-                    print('\t\tScan: author="%s" is not white listed, ignoring comment' % c_author)
+    global total_scans
+    for subreddit in subreddits:
+        print('Scan: Scanning subreddit: %s' % subreddit)
+        sr = reddit.get_subreddit(subreddit)
+        print('Scan: Retriving %s submissions' % pull_mode)
+        submissions = get_submissions(sr, pull_mode, max_pull)
+        for submission in submissions:
+            subreddit = submission.subreddit
+            subreddit_name = subreddit.display_name.lower()
+            submission_id = submission.id
+            submission_title = submission.title.lower()
+            submission_author = submission.author.name.lower()
+            submission_url = submission.url
+            
+            # check if the subreddit is whitelisted
+            if white_listed_subs != []:
+                if not any(sub == subreddit_name for sub in white_listed_subs):
+                    print('\tScan: subreddit="%s" is not white listed, ignoring submission' % subreddit_name)
                     continue
 
-            # check if the comment author is blacklisted
-            if black_listed_authors is []:
-                if any(author.lower() == c_author for author in black_listed_authors):
-                    print('\t\tScan: author="%s" is black listed, ignoring comment' % c_author)
+            # check if the subreddit is blacklisted
+            if black_listed_subs != []:
+                if any(sub == subreddit_name for sub in black_listed_subs):
+                    print('\tScan: subreddit="%s" is black listed, ignoring submission' % subreddit_name)
                     continue
 
-            c_body = comment.body.lower()
-            if any(trigger in c_body.lower() for trigger in triggers):
-                reply(submission, comment)
+            print('\tScan: submission id="%s" sub="%s" title="%s" author="%s"' %
+                  (submission_id, subreddit_name[:debug_truncation_len],
+                   submission_title[:debug_truncation_len], submission_author[:debug_truncation_len]))
+
+            # check if it is an imgur submission
+            if imgur_url not in submission_url:
+                #print('Scan: Submission id="%s" is not supported, ignoring it' % sub_id)
+                continue
+
+            for comment in submission.comments:
+                # check if we have already parsed this comment
+                comment_id = comment.id
+                if has_parsed(comment_id):
+                    #print('\t\tScan: Comment id="%s" has already been parsed, ignoring it' % comment_id)
+                    continue
+
+                # mark the comment as parsed so we don't process it again
+                mark_parsed(comment_id)
+                
+                # check if the author still exists
+                try:
+                    comment_author = comment.author.name.lower()
+                    comment_body = strip_bad_chars('\n\t', comment.body.lower())
+                    print('\t\tScan: Parsing comment id="%s" author="%s", body="%s"' %
+                          (comment_id, comment_author, comment_body[:debug_truncation_len]))
+                except AttributeError:
+                    #print('\t\tScan: Comment id="%s" has been deleted or removed, ignoring it' % comment_id)
+                    continue
+
+                # check if the comment author is whitelisted
+                if white_listed_authors != []:
+                    if not any(author.lower() == c_author for author in white_listed_authors):
+                        #print('\t\tScan: author="%s" is not white listed, ignoring comment' % c_author)
+                        continue
+
+                # check if the comment author is blacklisted
+                if black_listed_authors != []:
+                    if any(author.lower() == c_author for author in black_listed_authors):
+                        #print('\t\tScan: author="%s" is black listed, ignoring comment' % c_author)
+                        continue
+
+                if any(trigger in comment_body for trigger in triggers):
+                    reply(submission, comment)
+    total_scans += 1
 
 
 # prepares the programs environment
@@ -364,6 +402,13 @@ def main():
     while True:
         try:
             scan()
+            # print stats
+            print('Stats: Images downloaded =', images_downloaded)
+            print('Stats: Images compressed =', images_compressed)
+            print('Stats: Images uploaded =', images_uploaded)
+            print('Stats: Comments parsed =', comments_parsed)
+            print('Stats: Comments replied to =', comments_replied_to)
+            print('Stats: Total scans =', total_scans)
         except KeyboardInterrupt:
             break
         except:  # don't crash if there was an error
