@@ -83,4 +83,6 @@ temp
 # pycharm files
 .idea
 
+# logs
+log.txt
 

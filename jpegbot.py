@@ -24,6 +24,7 @@ import os
 import pyimgur
 import optparse
 import json
+import datetime
 from PIL import Image
 from oauth import reddit_app_ua, reddit_app_id, reddit_app_secret, reddit_app_uri, reddit_app_refresh
 from oauth import imgur_app_id, imgur_app_secret
@@ -369,26 +370,37 @@ def main():
     auth_reddit()
     auth_imgur()
     auth_db()
-    while True:
-        try:
-            scan()
-            # print stats
-            print('Stats: Images downloaded =', images_downloaded)
-            print('Stats: Images compressed =', images_compressed)
-            print('Stats: Images uploaded =', images_uploaded)
-            print('Stats: Comments parsed =', comments_parsed)
-            print('Stats: Comments replied to =', comments_replied_to)
-            print('Stats: Total scans =', total_scans)
-        except KeyboardInterrupt:
-            break
-        except:  # don't crash if there was an error
-            traceback.print_exc()
-        print('Running again in', pull_period, 'seconds')
-        time.sleep(pull_period)
+
+    try:
+        #scan()
+        # print stats
+        print('Stats: Images downloaded =', images_downloaded)
+        print('Stats: Images compressed =', images_compressed)
+        print('Stats: Images uploaded =', images_uploaded)
+        print('Stats: Comments parsed =', comments_parsed)
+        print('Stats: Comments replied to =', comments_replied_to)
+        print('Stats: Total scans =', total_scans)
+    except KeyboardInterrupt:
+        exit(1)
+    except:  # don't crash if there was an error
+        traceback.print_exc()
 
     # close db
     sql.commit()
     sql.close()
+
+    with open('log.txt', 'a') as file_handle:
+        file_handle.write('images_downloaded = %i | images_uploaded = %i | comments_parsed = %i | comments_replied_to = %i\n'
+                          % (images_downloaded, images_uploaded, comments_parsed, comments_replied_to))
+
+    if not os.path.isfile('STOP'):
+        newruntime = (datetime.datetime.now() + datetime.timedelta(seconds=5)).strftime('%H:%M %d.%m.%Y')
+        command = 'echo "python3 jpegbot.py" | at ' + newruntime
+        os.system(command)
+    else:
+        os.remove('STOP')
+        os.system('touch STOPPED')
+
 
 
 if __name__ == '__main__':
