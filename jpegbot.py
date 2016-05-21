@@ -47,7 +47,7 @@ triggers = []
 subreddits = []
 
 imgur_download_size = 'medium_thumbnail'  # ‘small_square’, ‘big_square’, ‘small_thumbnail’, ‘medium_thumbnail’, ‘large_thumbnail’, ‘huge_thumbnail’
-max_pull = 200  # number of posts pulled at a time
+max_pull = None  # number of posts pulled at a time
 pull_period = 5  # seconds
 pull_mode = 'hot'  # 'hot', 'new', 'rising', 'controversial', 'top'
 compression_quality = 1
@@ -300,8 +300,9 @@ def scan():
     for subreddit in subreddits:
         print('Scan: Scanning subreddit: %s' % subreddit)
         sr = reddit.get_subreddit(subreddit)
-        print('Scan: Retriving %s submissions' % pull_mode)
+        print('Scan: Retrieving %s submissions' % pull_mode)
         submissions = get_submissions(sr, pull_mode, max_pull)
+        print('Scan: Retrieved %i submissions' % len(submissions))
         for submission in submissions:
             subreddit = submission.subreddit
             subreddit_name = subreddit.display_name.lower()
@@ -309,6 +310,8 @@ def scan():
             submission_title = submission.title.lower()
             submission_author = submission.author.name.lower()
             submission_url = submission.url
+            comments = submission.comments
+            print('Scan: Retrieved %i comments for submission id="%s"' % (len(submission.comments), submission_id))
             
             # check if the subreddit is whitelisted
             if white_listed_subs != []:
@@ -331,7 +334,7 @@ def scan():
                 #print('Scan: Submission id="%s" is not supported, ignoring it' % sub_id)
                 continue
 
-            for comment in submission.comments:
+            for comment in submission.comments:                
                 # check if we have already parsed this comment
                 comment_id = comment.id
                 if has_parsed(comment_id):
