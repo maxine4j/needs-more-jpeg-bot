@@ -301,7 +301,7 @@ def scan():
         print('Scan: Scanning subreddit: %s' % subreddit)
         sr = reddit.get_subreddit(subreddit)
         print('Scan: Retrieving %s submissions' % pull_mode)
-        submissions = get_submissions(sr, pull_mode, max_pull)
+        submissions = list(get_submissions(sr, pull_mode, max_pull))
         print('Scan: Retrieved %i submissions' % len(submissions))
         for submission in submissions:
             subreddit = submission.subreddit
@@ -310,7 +310,7 @@ def scan():
             submission_title = submission.title.lower()
             submission_author = submission.author.name.lower()
             submission_url = submission.url
-            comments = submission.comments
+            comments = list(submission.comments)
             print('Scan: Retrieved %i comments for submission id="%s"' % (len(submission.comments), submission_id))
             
             # check if the subreddit is whitelisted
