@@ -13,7 +13,7 @@ This bot will reply to a user who comments about the poor quality of a submitted
 
 ##Installation:
 
-    $ git clone https://github.com/Arwic/RedditBots.git
+    $ git clone https://github.com/Arwic/NeedsMoreJPEGBot.git
     $ sudo apt-get install python3 libjpeg8 libjpeg62-dev libfreetype6 libfreetype6-dev
     $ sudo pip3 install praw pyimgur pillow
     
