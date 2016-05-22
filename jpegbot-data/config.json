@@ -1,30 +1,20 @@
 {
 	"compression_quality": 1,
 	"imgur_download_size": "medium_thumbnail",
-	"pull_size": 200,
-	"pull_period": 5,
-	"pull_modes":
-	[
-		"hot",
-		"new"
-	],
 	"triggers":
 	[
 		"needs more jpeg",
 		"needs more jpg",
-		"nice jpeg",
-		"nice jpg",
 		"need any more jpeg",
 		"need any more jpg"
 	],
 	"subreddits":
 	[
-		"arwic",
-		"needsmorejpegbot",
 		"all"
 	],
 	"author_blacklist":
 	[
+		"MoreJPEGCompBot"
 	],
 	"author_whitelist":
 	[
@@ -91,8 +81,5 @@
 		"tr4shbros", 
 		"unitedkingdom",
 		"crucibleplaybook"
-	],
-	"subreddit_whitelist":
-	[
 	]
 }
