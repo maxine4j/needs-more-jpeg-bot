@@ -42,6 +42,7 @@ direct_imgur_link = 'http://i.imgur.com/'
 indirect_imgur_link = 'http://imgur.com/'
 imgur_url = 'imgur.com'
 pid_file = '/tmp/jpegbot.pid'
+stop_file = '/tmp/jpegbot.stop'
 
 # from config file
 imgur_download_size = 'medium_thumbnail'
@@ -420,13 +421,12 @@ def main():
         out = '%4s|%4s|%4s|%4s' % (images_downloaded, images_uploaded, comments_parsed, comments_replied_to)
         file_handle.write(out)
 
-    if not os.path.isfile('STOP'):
-        newruntime = (datetime.datetime.now() + datetime.timedelta(seconds=pull_period)).strftime('%H:%M %d.%m.%Y')
-        command = 'echo "python3 ' + __file__ + '" | at ' + newruntime
+    if not os.path.isfile(stop_file):
+        t = (datetime.datetime.now() + datetime.timedelta(seconds=pull_period)).strftime('%H:%M %d.%m.%Y')
+        command = 'echo "python3 ' + __file__ + '" | at ' + t
         os.system(command)
     else:
-        os.remove('STOP')
-        os.system('touch STOPPED')
+        os.remove(stop_file)
 
 
 if __name__ == '__main__':
