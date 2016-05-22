@@ -413,12 +413,12 @@ def main():
 
     if not os.path.isfile(path_log):
         with open(path_log, 'w') as file_handle:
-            header = '  d  |  u  |  p  |  r  '
+            header = '  d  |  u  |  p  |  r  \n'
             file_handle.write(header)
 
     # log results
     with open(path_log, 'a') as file_handle:
-        out = '%4s|%4s|%4s|%4s' % (images_downloaded, images_uploaded, comments_parsed, comments_replied_to)
+        out = '%4s|%4s|%4s|%4s\n' % (images_downloaded, images_uploaded, comments_parsed, comments_replied_to)
         file_handle.write(out)
 
     if not os.path.isfile(stop_file):
