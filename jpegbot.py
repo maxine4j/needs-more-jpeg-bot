@@ -23,6 +23,7 @@ import os
 import pyimgur
 import optparse
 import json
+import atexit
 from PIL import Image
 from websocket import create_connection
 from oauth import reddit_app_ua, reddit_app_id, reddit_app_secret, reddit_app_uri, reddit_app_refresh
@@ -33,6 +34,7 @@ dir_images = os.path.join(dir_root, 'images')
 path_config = os.path.join(dir_root, 'config.json')
 path_reply_template = os.path.join(dir_root, 'reply.txt')
 path_log = os.path.join(dir_root, 'log.txt')
+pid_file = '/tmp/jpegbot.pid'
 
 debug_truncation_len = 50
 direct_imgur_link = 'http://i.imgur.com/'
@@ -241,8 +243,26 @@ def prepare_env():
         os.mkdir(dir_images)
 
 
+# checks to see if an instance of jpegbot is already running
+def check_pidfile():
+    pid = str(os.getpid())
+    if os.path.isfile(pid_file):
+        print('%s already exists, exiting' % pid_file)
+        exit(1)
+    with open(pid_file, 'w') as file_handle:
+        file_handle.write(pid)
+
+
+# on exit
+def on_exit():
+    os.remove(pid_file)
+
+
 # main
 def main():
+    check_pidfile()
+    atexit.register(on_exit)
+
     global compression_quality, sql
     parser = optparse.OptionParser()
     parser.add_option('-q', '--quality', dest='quality',
