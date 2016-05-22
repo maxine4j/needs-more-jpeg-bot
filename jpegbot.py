@@ -34,6 +34,7 @@ dir_images = os.path.join(dir_root, 'images')
 path_config = os.path.join(dir_root, 'config.json')
 path_reply_template = os.path.join(dir_root, 'reply.txt')
 path_db = os.path.join(dir_root, 'jpegbot.db')
+path_log = os.path.join(dir_root, 'log.txt')
 
 debug_truncation_len = 50
 direct_imgur_link = 'http://i.imgur.com/'
@@ -389,19 +390,23 @@ def main():
     sql.commit()
     sql.close()
 
+    if not os.path.isfile(path_log):
+        with open(path_log, 'w') as file_handle:
+            header = '  d  |  u  |  p  |  r  '
+            file_handle.write(header)
+
     # log results
-    with open('log.txt', 'a') as file_handle:
-        file_handle.write('images_downloaded = %i | images_uploaded = %i | comments_parsed = %i | comments_replied_to = %i\n'
-                          % (images_downloaded, images_uploaded, comments_parsed, comments_replied_to))
+    with open(path_log, 'a') as file_handle:
+        out = '%4s|%4s|%4s|%4s' % (images_downloaded, images_uploaded, comments_parsed, comments_replied_to)
+        file_handle.write(out)
 
     if not os.path.isfile('STOP'):
-        newruntime = (datetime.datetime.now() + datetime.timedelta(seconds=5)).strftime('%H:%M %d.%m.%Y')
-        command = 'echo "python3 jpegbot.py" | at ' + newruntime
+        newruntime = (datetime.datetime.now() + datetime.timedelta(seconds=pull_period)).strftime('%H:%M %d.%m.%Y')
+        command = 'echo "python3 ' + __file__ + '" | at ' + newruntime
         os.system(command)
     else:
         os.remove('STOP')
         os.system('touch STOPPED')
-
 
 
 if __name__ == '__main__':
