@@ -418,7 +418,7 @@ def main():
 
     # log results
     with open(path_log, 'a') as file_handle:
-        out = '%4s|%4s|%4s|%4s\n' % (images_downloaded, images_uploaded, comments_parsed, comments_replied_to)
+        out = '%4s |%4s |%4s |%4s \n' % (images_downloaded, images_uploaded, comments_parsed, comments_replied_to)
         file_handle.write(out)
 
     if not os.path.isfile(stop_file):
