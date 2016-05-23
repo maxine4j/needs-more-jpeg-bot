@@ -24,6 +24,8 @@ import pyimgur
 import optparse
 import json
 import atexit
+import re
+import threading
 from PIL import Image
 from websocket import create_connection
 from oauth import reddit_app_ua, reddit_app_id, reddit_app_secret, reddit_app_uri, reddit_app_refresh
@@ -33,12 +35,9 @@ dir_root = 'jpegbot-data'
 dir_images = os.path.join(dir_root, 'images')
 path_config = os.path.join(dir_root, 'config.json')
 path_reply_template = os.path.join(dir_root, 'reply.txt')
-path_log = os.path.join(dir_root, 'log.txt')
 pid_file = '/tmp/jpegbot.pid'
 
 debug_truncation_len = 50
-direct_imgur_link = 'http://i.imgur.com/'
-indirect_imgur_link = 'http://imgur.com/'
 # from config file
 imgur_download_size = 'medium_thumbnail'
 compression_quality = 1
@@ -49,6 +48,7 @@ white_listed_authors = []
 black_listed_subs = []
 reply_template = ''
 rockets_subscription = ''
+username = ''
 
 # api objects
 reddit = None
@@ -65,14 +65,17 @@ images_uploaded = 0
 comments_replied_to = 0
 comments_parsed = 0
 
+re_imgur = re.compile(r'imgur.com/(.{7})')
+
 
 def load_config():
-    global rockets_subscription, compression_quality, imgur_download_size, triggers, \
+    global username, rockets_subscription, compression_quality, imgur_download_size, triggers, \
         subreddits, black_listed_authors, white_listed_authors, black_listed_subs, reply_template
 
     try:
         with open(path_config, 'r') as file_handle:
             config = json.load(file_handle)
+        username = config['username'].lower()
         compression_quality = config['compression_quality']
         imgur_download_size = config['imgur_download_size']
         triggers = config['triggers']
@@ -106,7 +109,7 @@ def load_config():
     req['include']['author'] = white_listed_authors
     if 'all' in subreddits:
         req['include']['subreddit'] = []
-    elif len(subreddits) == 0:
+    elif subreddits == []:
         print('Error: No subreddits specified')
         exit(1)
     else:
@@ -116,7 +119,6 @@ def load_config():
     req['exclude']['author'] = black_listed_authors
     req['exclude']['subreddit'] = black_listed_subs
 
-    req['root'] = True
     rockets_subscription = json.dumps(req)
 
 
@@ -146,26 +148,14 @@ def auth_rockets():
     print('Success!')
 
 
-# parses an imgur url
-# returns: imgur image id or None on failure
-def imgur_url_to_id(url):
-    if direct_imgur_link in url:
-        return url[19:-4]
-    elif indirect_imgur_link in url:
-        return url[17:]
-    else:
-        print('Imgur to ID: Bad URL: %s' % url)
-        return None
-
-
 # downloads an image from imgur
 # returns: image path
 def download_image(imgur_id):
     global imgur, images_downloaded
-    print('Downloading image', imgur_id)
+    print('\t\tDownloading image', imgur_id)
     image_handle = imgur.get_image(imgur_id)
     path = image_handle.download(path=dir_images, overwrite=True, size=imgur_download_size)
-    print('Success!', path)
+    print('\t\tSuccess!', path)
     images_downloaded += 1
     return path
 
@@ -174,9 +164,9 @@ def download_image(imgur_id):
 # returns: image url
 def upload_image(path):
     global imgur, images_uploaded
-    print('Uploading image', path)
+    print('\t\tUploading image', path)
     uploaded_image = imgur.upload_image(path, title="NEEDS MORE JPEG COMPRESSION")
-    print('Success!', uploaded_image.link)
+    print('\t\tSuccess!', uploaded_image.link)
     images_uploaded += 1
     return uploaded_image.link
 
@@ -185,54 +175,102 @@ def upload_image(path):
 # returns: path to compressed image
 def compress_image(img_path):
     global images_compressed
-    print('Compressing image', img_path)
+    print('\t\tCompressing image', img_path)
     compressed_path = os.path.splitext(img_path)[0] + '_c.jpg'
     if os.path.isfile(compressed_path):
         os.remove(compressed_path)
     image = Image.open(img_path)
     image.save(compressed_path, 'JPEG', quality=compression_quality)
-    print('Success!', compressed_path)
+    print('\t\tSuccess!', compressed_path)
     images_compressed += 1
     return compressed_path
 
 
-# replies to a comment
-def reply(link_url, c_name):
+def process_image(imgur_id):
+    image_path = download_image(imgur_id)  # download,
+    compressed_image_path = compress_image(image_path)  # compress
+    return upload_image(compressed_image_path)  # and upload the compressed image
+
+
+def reply(comment_tid, imgur_id):
     def _reply():
         global comments_replied_to
         while True:
-            # get the image's id
-            imgur_id = imgur_url_to_id(link_url)
-            if imgur_id is None:
-                break
-            image_path = download_image(imgur_id)  # download,
-            compressed_image_path = compress_image(image_path)  # compress
-            uploaded_image_link = upload_image(compressed_image_path)  # and reupload the image
             try:
-                comment = reddit.get_info(thing_id=c_name)
-                comment.reply(reply_template % uploaded_image_link)
-                print('Reply: Reply was submitted successfully')
+                comment = reddit.get_info(thing_id=comment_tid)
+                img_link = process_image(imgur_id)
+                comment.reply(reply_template % img_link)
+                print('\tReply: Reply was submitted successfully')
                 comments_replied_to += 1
                 break
             except praw.errors.RateLimitExceeded as error:  # keep trying if we hit the rate limit
-                print('Rate limit exceeded! Sleeping for', error.sleep_time, 'seconds')
+                print('\tRate limit exceeded! Sleeping for', error.sleep_time, 'seconds')
                 time.sleep(error.sleep_time)
-    
-    print('Reply: Replying to comment c_name="%s"' % c_name)
-    _reply()
+    threading.Thread(target=_reply).start()
 
 
-def parse_next_comment():
+def parse_comment():
+    # get the next comment from rockets
     response = rockets_ws.recv()
     comment = json.loads(response)['data']
-    print(comment)
 
-    c_link = comment['link_url']
-    # check if the submission url is imgur
-    if not imgur.is_imgur_url(c_link):
+    print('Parse: Parsing comment id="%s" subreddit="%s" author="%s" body="%s"' %
+          (comment['id'], comment['subreddit'][:debug_truncation_len],
+           comment['author'][:debug_truncation_len], comment['body'][:debug_truncation_len]))
+
+    global comments_parsed
+    comments_parsed += 1
+
+    # These checks should be covered by rockets, but it doesn't seem to work 100% of the time
+    # check if the comment has a trigger in it
+    if not any(trigger in comment['body'] for trigger in triggers):
+        print('\tParse: Rockets Failed: No trigger in comment body, ignoring')
+    # check if the subreddit is blacklisted
+    sr_name = comment['subreddit']
+    if black_listed_subs != []:
+        if any(sub.lower() == sr_name.lower() for sub in black_listed_subs):
+            print('\tParse: Rockets Failed: blacklisted subreddit "%s, ignoring"' % sr_name)
+            return
+    # check if the comment author is whitelisted
+    c_author = comment['author']
+    if white_listed_authors != []:
+        if not any(author.lower() == c_author.lower() for author in white_listed_authors):
+            print('\tParse: Rockets Failed: author not whitelisted "%s, ignoring"' % c_author)
+            return
+    # check if the comment author is blacklisted
+    if black_listed_authors != []:
+        if any(author.lower() == c_author.lower() for author in black_listed_authors):
+            print('\tParse: Rockets Failed: blacklisted author "%s, ignoring"' % c_author)
+            return
+
+    # get comment's parent
+    parent_id = comment['parent_id']
+    parent = reddit.get_info(thing_id=parent_id)
+
+    # don't reply to the bot
+    if parent.author.name.lower() == username:
+        print('\tParse: Image was posted by the bot, ignoring')
         return
 
-    reply(c_link, comment['name'])
+    # get the imgur id from the parent
+    if parent_id[:3] == 't1_':  # parent is a comment
+        print('\tParse: Parent is a comment')
+        parent_body = parent.body
+    elif parent_id[:3] == 't3_':  # parent is a submission
+        print('\tParse: Parent is a submission')
+        parent_body = parent.url
+    else:
+        print('\tParse: Unsupported parent type "%s", ignoring' % parent_id[:3])
+        return
+    matches = re_imgur.findall(parent_body)
+    if matches == []:
+        print('\tParse: No imgur url found in parent, ignoring')
+        return
+    imgur_id = matches[0]
+    print('\tParse: Found imgur url in parent, imgur_id="%s"' % imgur_id)
+
+    # reply to the comment
+    reply(comment['name'], imgur_id)
 
 
 # prepares the programs environment
@@ -279,6 +317,7 @@ def main():
         exit(1)
 
     prepare_env()
+
     load_config()
 
     auth_reddit()
@@ -287,8 +326,9 @@ def main():
 
     while True:
         try:
-            parse_next_comment()
+            parse_comment()
         except KeyboardInterrupt:
+            # close web socket
             rockets_ws.close()
             # print stats
             print('Stats: Images downloaded =', images_downloaded)

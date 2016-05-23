@@ -1,3 +1,3 @@
 #!/bin/bash
 
-echo "python3 jpegbot.py" | at now
+echo "python3 jpegbot.py > log.txt" | at now

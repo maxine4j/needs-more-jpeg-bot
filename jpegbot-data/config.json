@@ -1,4 +1,5 @@
 {
+	"username": "MoreJPEGCompBot",
 	"compression_quality": 1,
 	"imgur_download_size": "medium_thumbnail",
 	"triggers":
@@ -10,7 +11,7 @@
 	],
 	"subreddits":
 	[
-		"all"
+		"arwic"
 	],
 	"author_blacklist":
 	[
