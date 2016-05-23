@@ -21,7 +21,6 @@ import praw
 import time
 import os
 import pyimgur
-import optparse
 import json
 import atexit
 import re
@@ -302,19 +301,6 @@ def main():
     atexit.register(on_exit)
 
     global compression_quality, sql
-    parser = optparse.OptionParser()
-    parser.add_option('-q', '--quality', dest='quality',
-                      help='sets the quality of compression',
-                      default=compression_quality,
-                      nargs=1)
-
-    options, arguments = parser.parse_args()
-
-    try:
-        compression_quality = int(options.quality)
-    except TypeError:
-        print('Invalid compression quality')
-        exit(1)
 
     prepare_env()
 
