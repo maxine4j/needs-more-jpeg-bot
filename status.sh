@@ -6,7 +6,7 @@ then
 	echo "$PIDFILE exists"
 	PID=$(cat $PIDFILE)
 	echo "pid: $PID"
-	ps up $PID  && echo "true" || echo "false"
+	ps up $PID  && echo "running" || echo "not running but lock file exists"
 else
-	echo "false"
+	echo "not running"
 fi
