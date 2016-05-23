@@ -1,7 +1,7 @@
 {
 	"username": "MoreJPEGCompBot",
 	"compression_quality": 1,
-	"imgur_download_size": "medium_thumbnail",
+	"imgur_download_size": "large_thumbnail",
 	"triggers":
 	[
 		"needs more jpeg",
