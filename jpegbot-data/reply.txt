@@ -1,8 +1,0 @@
-[Here you go](%s)
-
----
-
-^(I am a bot) 
-[^([Subreddit])](https://www.reddit.com/r/NeedsMoreJPEGBot/)
-[^([Contact])](https://www.reddit.com/message/compose/?to=/r/NeedsMoreJPEGBot;subject=NeedsMoreJPEGBot)
-[^([Source])](https://github.com/Arwic/NeedsMoreJPEGBot)
