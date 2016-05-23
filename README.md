@@ -4,7 +4,7 @@
 
 This is a bot for [reddit](https://reddit.com/) that responds to commenters requests for a lower qaulity version of an image.
 
-![Header](http://i.imgur.com/1XBzQNy)
+![Example](/../images/example.png?raw=true "Example")
 
 #####Subreddit:
 
