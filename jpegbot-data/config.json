@@ -22,6 +22,9 @@
 	],
 	"subreddit_blacklist":
 	[
+		"funny",
+		"sports",
+		"gifs",
 		"me_irl",
 		"bmw", 
 		"benfrick", 
