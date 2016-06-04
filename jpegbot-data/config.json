@@ -22,6 +22,11 @@
 	],
 	"subreddit_blacklist":
 	[
+		"photoshopbattles",
+		"gifs",
+		"sports",
+		"funny",
+		"unixporn",
 		"me_irl",
 		"bmw", 
 		"benfrick", 

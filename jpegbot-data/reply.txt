@@ -3,6 +3,5 @@
 ---
 
 ^(I am a bot) 
-[^([Contact])](https://np.reddit.com/message/compose/?to=/r/NeedsMoreJPEGBot;subject=NeedsMoreJPEGBot)
 [^([Source])](https://github.com/Arwic/NeedsMoreJPEGBot)
 [^([FAQ])](https://github.com/Arwic/NeedsMoreJPEGBot/wiki/FAQ)
